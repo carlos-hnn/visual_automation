@@ -1,0 +1,25 @@
+{
+  "monitor": 1,
+  "template_path": null,
+  "target_region": null,
+  "template_threshold": 0.85,
+  "loop_delay_seconds": 0.5,
+  "max_runtime_seconds": 300,
+  "dry_run": false,
+  "dry_run_move_mouse_to_match": false,
+  "debug": false,
+  "debug_dir": "logs/debug",
+  "error_screenshot_dir": "logs/errors",
+  "mouse": {
+    "move_duration_min": 0.25,
+    "move_duration_max": 0.55,
+    "click_pause_seconds": 0.12,
+    "random_offset_pixels": 4,
+    "point_tolerance_pixels": 6
+  },
+  "safety": {
+    "stop_hotkey": "cmd+shift+q",
+    "enable_esc_stop": true,
+    "failsafe_corner_pixels": 5
+  }
+}

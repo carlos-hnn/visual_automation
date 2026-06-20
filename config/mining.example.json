@@ -1,0 +1,52 @@
+{
+  "monitor": 1,
+  "dry_run": true,
+  "debug": false,
+  "debug_dir": "logs/debug",
+  "max_runtime_hours": 1,
+  "max_runtime_seconds": 900,
+  "loop_delay_seconds": 0.5,
+  "threshold": 0.85,
+  "thresholds": {
+    "iron_rock": 0.85,
+    "empty_slot": 0.90,
+    "drop_ore": 0.88
+  },
+  "templates": {
+    "iron_rocks": [
+      "assets/templates/iron_rock_brown_current_1.png",
+      "assets/templates/iron_rock_brown_current_2.png"
+    ],
+    "empty_slot": "assets/templates/inventory_empty_slot_current.png",
+    "drop_ore": "assets/templates/iron_ore_inventory_current.png"
+  },
+  "regions": {
+    "game_view": "mining_game_view",
+    "status": "mining_status",
+    "inventory": "mining_inventory",
+    "last_slot": "mining_last_slot"
+  },
+  "status_detection": {
+    "green_min_pixels": 12,
+    "red_min_pixels": 12
+  },
+  "timing": {
+    "after_rock_click_seconds": 2.0,
+    "status_poll_seconds": 0.8,
+    "drop_tick_seconds": 0.02,
+    "drop_tick_jitter_seconds": 0.005,
+    "after_drop_inventory_check_seconds": 0.1
+  },
+  "mouse": {
+    "move_duration_min": 0.04,
+    "move_duration_max": 0.09,
+    "click_pause_seconds": 0.02,
+    "random_offset_pixels": 4,
+    "point_tolerance_pixels": 6
+  },
+  "safety": {
+    "stop_hotkey": "cmd+shift+q",
+    "enable_esc_stop": true,
+    "failsafe_corner_pixels": 5
+  }
+}
