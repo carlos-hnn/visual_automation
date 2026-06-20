@@ -1,0 +1,20 @@
+{
+  "templates_dir": "templates/template_click_sequence",
+  "order": ["1", "2", "3", "4", "5", "6"],
+  "waits": "5,21,13,12,4,10",
+  "monitor": 1,
+  "threshold": 0.6,
+  "template_scales": "0.35,0.4,0.45,0.5,0.55,0.6,0.65",
+  "timeout": 6.0,
+  "poll_seconds": 0.2,
+  "click_scale": 1.0,
+  "countdown": 2.0,
+  "fallback_timeout": 1.2,
+  "spot_jitter": 4,
+  "time_jitter": 0.1,
+  "pre_click_jitter": 0.05,
+  "move_duration_min": 0.16,
+  "move_duration_max": 0.32,
+  "dry_run": true,
+  "debug": false
+}

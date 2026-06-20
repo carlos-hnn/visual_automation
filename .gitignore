@@ -7,8 +7,10 @@ venv/
 env/
 .env
 
-logs/*.log
-logs/*.png
+logs/**/*.log
+logs/**/*.png
+logs/**/*.mov
+logs/debug/
 !logs/.gitkeep
 records/
 
@@ -20,3 +22,7 @@ config/mining.json
 config/firemaking.json
 config/motherlode_hotkeys.json
 config/npc_pickpocket.json
+legacy/config/*.json
+!legacy/config/*.example.json
+legacy/logs/
+legacy/visual_automation/
