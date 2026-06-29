@@ -11,7 +11,7 @@ from core.debug import save_annotated_match
 from core.screen import Frame, ScreenCapture
 from core.terminal import install_timestamped_print
 from core.vision import TemplateMatch
-from v2.actions import StopKeys, build_mouse, humanized_delay
+from v2.actions import StopKeys, build_mouse, humanized_delay, match_click_coordinates
 from v2.config import load_json_config, value_from_config
 from v2.definitions import ROOT, TemplateSequenceDefaults
 from v2.game_states import TemplateStep, fallback_candidates, load_template_steps, rotate_steps, wait_for_template_match
@@ -27,17 +27,6 @@ def save_debug_match(frame: Frame, match: TemplateMatch, debug_dir: Path, prefix
     relative_top_left = (match.x - frame.left, match.y - frame.top)
     relative_bottom_right = (relative_top_left[0] + match.width, relative_top_left[1] + match.height)
     return save_annotated_match(frame.image, relative_top_left, relative_bottom_right, match.score, debug_dir, prefix)
-
-
-def click_coordinates(match: TemplateMatch, click_scale: float, spot_jitter_pixels: int) -> tuple[int, int]:
-    center_x, center_y = match.center
-    jitter = max(0, int(spot_jitter_pixels))
-    max_x_offset = min(jitter, max(0, (match.width - 1) // 2))
-    max_y_offset = min(jitter, max(0, (match.height - 1) // 2))
-    center_x += random.randint(-max_x_offset, max_x_offset) if max_x_offset else 0
-    center_y += random.randint(-max_y_offset, max_y_offset) if max_y_offset else 0
-    scale = max(0.01, click_scale)
-    return round(center_x / scale), round(center_y / scale)
 
 
 def run_sequence(
@@ -147,11 +136,16 @@ def run_sequence(
                             step_index += 1
                             continue
 
-                    click_x, click_y = click_coordinates(match, click_scale, spot_jitter_pixels)
+                    click_x, click_y = match_click_coordinates(match, click_scale, spot_jitter_pixels)
                     wait_seconds = humanized_delay(step.wait_seconds, time_jitter_seconds)
                     pre_click_delay = random.uniform(0.0, pre_click_jitter_seconds) if pre_click_jitter_seconds > 0 else 0.0
                     if debug:
-                        _latest_match, frame, _latest_scale = best_template_match(screen, step.template_path, monitor, [scale])
+                        _latest_match, frame, _latest_scale = best_template_match(
+                            screen,
+                            step.template_path,
+                            monitor,
+                            [scale],
+                        )
                         annotated_path = save_debug_match(frame, match, debug_dir, "template_sequence_match")
                         print(f"  debug match: {annotated_path}")
 

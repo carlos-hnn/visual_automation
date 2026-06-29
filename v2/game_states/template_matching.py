@@ -44,9 +44,10 @@ def best_template_match(
     template_path: Path,
     monitor: int,
     template_scales: list[float],
+    region: dict[str, int] | None = None,
     min_template_dimension: int = 0,
 ) -> tuple[TemplateMatch, Frame, float]:
-    frame = screen.capture()
+    frame = screen.capture(region)
     best: TemplateMatch | None = None
     best_scale = template_scales[0]
 
@@ -91,12 +92,13 @@ def wait_for_template_match(
     timeout: float,
     poll_seconds: float,
     stop_keys: StopKeys,
+    region: dict[str, int] | None = None,
 ) -> TemplateSearchResult:
     deadline = time.monotonic() + timeout
     best_seen: TemplateMatch | None = None
     best_seen_scale = template_scales[0]
     while time.monotonic() < deadline and not stop_keys.stop_requested:
-        match, _frame, scale = best_template_match(screen, template_path, monitor, template_scales)
+        match, _frame, scale = best_template_match(screen, template_path, monitor, template_scales, region=region)
         if best_seen is None or match.score > best_seen.score:
             best_seen = match
             best_seen_scale = scale
@@ -104,6 +106,13 @@ def wait_for_template_match(
             return TemplateSearchResult(match=match, best_seen=match, scale=scale)
         time.sleep(max(0.01, poll_seconds))
     if best_seen is None:
-        best_seen, _frame, best_seen_scale = best_template_match(screen, template_path, monitor, template_scales)
+        best_seen, _frame, best_seen_scale = best_template_match(
+            screen,
+            template_path,
+            monitor,
+            template_scales,
+            region=region,
+        )
+    if best_seen.score >= threshold:
+        return TemplateSearchResult(match=best_seen, best_seen=best_seen, scale=best_seen_scale)
     return TemplateSearchResult(match=None, best_seen=best_seen, scale=best_seen_scale)
-

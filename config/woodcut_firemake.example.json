@@ -1,0 +1,124 @@
+{
+  "templates_dir": "templates/woodcut_firemake",
+  "window_title": "RuneLite",
+  "regions_are_window_relative": true,
+  "monitor": 1,
+  "template_scales": "0.5",
+  "template_scales_by_name": {
+    "woodcutting_status": "0.5",
+    "empty_inventory_slot": "0.5",
+    "tree": "0.3,0.35,0.4,0.45,0.5",
+    "tree2": "0.3,0.35,0.4,0.45,0.5",
+    "tree3": "0.3,0.35,0.4,0.45,0.5",
+    "tree4": "0.3,0.35,0.4,0.45,0.5",
+    "tinderbox": "0.5",
+    "maple_log": "0.5",
+    "fire": "0.35,0.4,0.45"
+  },
+  "threshold": 0.75,
+  "thresholds": {
+    "woodcutting_status": 0.80,
+    "empty_inventory_slot": 0.98,
+    "tree": 0.70,
+    "tree2": 0.70,
+    "tree3": 0.70,
+    "tree4": 0.70,
+    "tinderbox": 0.90,
+    "maple_log": 0.90,
+    "fire": 0.50
+  },
+  "regions": {
+    "woodcutting_status": {
+      "left": 2,
+      "top": 32,
+      "width": 180,
+      "height": 170
+    },
+    "empty_inventory_slot": {
+      "left": 687,
+      "top": 912,
+      "width": 115,
+      "height": 115
+    },
+    "tree": {
+      "left": 2,
+      "top": 32,
+      "width": 805,
+      "height": 830
+    },
+    "tree2": {
+      "left": 2,
+      "top": 32,
+      "width": 805,
+      "height": 830
+    },
+    "tree3": {
+      "left": 2,
+      "top": 32,
+      "width": 805,
+      "height": 830
+    },
+    "tree4": {
+      "left": 2,
+      "top": 32,
+      "width": 805,
+      "height": 830
+    },
+    "tinderbox": {
+      "left": 527,
+      "top": 692,
+      "width": 275,
+      "height": 360
+    },
+    "maple_log": {
+      "left": 527,
+      "top": 692,
+      "width": 275,
+      "height": 360
+    },
+    "fire": {
+      "left": 2,
+      "top": 32,
+      "width": 805,
+      "height": 830
+    }
+  },
+  "click_offsets": {
+    "tree": {
+      "x": 0,
+      "y": 0
+    },
+    "tree2": {
+      "x": 0,
+      "y": 0
+    },
+    "tree3": {
+      "x": 0,
+      "y": 0
+    },
+    "tree4": {
+      "x": 0,
+      "y": 0
+    },
+    "fire": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "status_timeout": 0.0,
+  "inventory_timeout": 0.0,
+  "click_timeout": 0.0,
+  "tree_fallback_threshold": 0.68,
+  "no_target_backoff_seconds": 0.25,
+  "poll_seconds": 0.15,
+  "tick_seconds": 0.6,
+  "time_jitter": 0.08,
+  "pre_click_jitter": 0.05,
+  "spot_jitter": 4,
+  "click_scale": 1.0,
+  "countdown": 2.0,
+  "loops": 0,
+  "dry_run": false,
+  "move_duration_min": 0.16,
+  "move_duration_max": 0.32
+}

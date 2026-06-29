@@ -1,13 +1,14 @@
 # Visual Automation v2
 
-This project is now organized around one active automation flow:
-`template_click_sequence`.
+This project is now organized around active v2 automation flows:
+`template_click_sequence` and `woodcut_firemake`.
 
 ## Active Layout
 
 ```text
 scripts/
   template_click_sequence.py      # thin CLI entrypoint
+  woodcut_firemake.py             # thin CLI entrypoint
 
 v2/
   definitions.py                  # shared paths and defaults
@@ -19,14 +20,18 @@ v2/
   game_states/
     template_matching.py          # captured game state: template search result, scores, scales
     template_sequence.py          # route/template step definitions
+    woodcut_firemake.py           # state checks for woodcutting, inventory, and targets
   flows/
     template_click_sequence.py    # orchestration for the active route runner
+    woodcut_firemake.py           # orchestration for woodcutting and firemaking
 
 templates/
   template_click_sequence/        # templates owned by this script
+  woodcut_firemake/               # templates owned by this script
 
 config/
   template_click_sequence.example.json
+  woodcut_firemake.example.json
 
 legacy/
   scripts/                        # old experiments and task-specific scripts

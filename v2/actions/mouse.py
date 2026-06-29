@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import random
+
 from core.mouse import MouseConfig, MouseController
+from core.vision import TemplateMatch
 
 
 def build_mouse(
@@ -19,3 +22,13 @@ def build_mouse(
         )
     )
 
+
+def match_click_coordinates(match: TemplateMatch, click_scale: float, spot_jitter_pixels: int) -> tuple[int, int]:
+    center_x, center_y = match.center
+    jitter = max(0, int(spot_jitter_pixels))
+    max_x_offset = min(jitter, max(0, (match.width - 1) // 2))
+    max_y_offset = min(jitter, max(0, (match.height - 1) // 2))
+    center_x += random.randint(-max_x_offset, max_x_offset) if max_x_offset else 0
+    center_y += random.randint(-max_y_offset, max_y_offset) if max_y_offset else 0
+    scale = max(0.01, click_scale)
+    return round(center_x / scale), round(center_y / scale)
