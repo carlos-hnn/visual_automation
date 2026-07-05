@@ -1,0 +1,25 @@
+{
+  "templates_dir": "templates/steel_cannonball",
+  "monitor": 1,
+  "template_scales": "0.5",
+  "template_scales_by_name": {
+    "steel_bars": "0.45,0.5,0.55,0.6,0.65"
+  },
+  "threshold": 0.82,
+  "thresholds": {
+    "steel_bars": 0.62
+  },
+  "poll_seconds": 0.12,
+  "tick_seconds": 0.6,
+  "click_timeout": 3.0,
+  "action_ticks": 1.0,
+  "deposit_load_seconds": 1.2,
+  "cutting_ticks": 270.0,
+  "time_jitter": 0.06,
+  "pre_click_jitter": 0.04,
+  "spot_jitter": 3,
+  "click_scale": 1.0,
+  "countdown": 2.0,
+  "loops": 0,
+  "dry_run": false
+}

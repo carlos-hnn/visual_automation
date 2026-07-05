@@ -1,7 +1,7 @@
 # Visual Automation v2
 
 This project is now organized around active v2 automation flows:
-`template_click_sequence` and `woodcut_firemake`.
+`template_click_sequence`, `woodcut_firemake`, and `gem_cutting`.
 
 ## Active Layout
 
@@ -9,6 +9,7 @@ This project is now organized around active v2 automation flows:
 scripts/
   template_click_sequence.py      # thin CLI entrypoint
   woodcut_firemake.py             # thin CLI entrypoint
+  gem_cutting.py                  # bank/withdraw/cut loop entrypoint
 
 v2/
   definitions.py                  # shared paths and defaults
@@ -24,6 +25,7 @@ v2/
   flows/
     template_click_sequence.py    # orchestration for the active route runner
     woodcut_firemake.py           # orchestration for woodcutting and firemaking
+    gem_cutting.py                # orchestration for banking and cutting gems
 
 templates/
   template_click_sequence/        # templates owned by this script
@@ -32,6 +34,7 @@ templates/
 config/
   template_click_sequence.example.json
   woodcut_firemake.example.json
+  gem_cutting.example.json
 
 legacy/
   scripts/                        # old experiments and task-specific scripts
@@ -74,6 +77,13 @@ With config:
 
 ```bash
 .venv/bin/python scripts/template_click_sequence.py --config config/template_click_sequence.example.json
+```
+
+Calibrate and run gem cutting:
+
+```bash
+.venv/bin/python scripts/gem_cutting.py --calibrate
+.venv/bin/python scripts/gem_cutting.py --gem green --no-dry-run --loops 0
 ```
 
 For a new active script, create a dedicated template folder:
