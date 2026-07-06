@@ -12,5 +12,5 @@
   "countdown": 2.0,
   "click_scale": 1.0,
   "spot_jitter": 3,
-  "dry_run": true
+  "dry_run": false
 }

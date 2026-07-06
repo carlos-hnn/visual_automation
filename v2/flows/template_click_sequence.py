@@ -21,6 +21,7 @@ from v2.game_states.template_sequence import parse_order
 install_timestamped_print()
 
 DEFAULTS = TemplateSequenceDefaults()
+MAX_UNSUCCESSFUL_ROUNDS = 2
 
 
 def save_debug_match(frame: Frame, match: TemplateMatch, debug_dir: Path, prefix: str) -> Path:
@@ -75,11 +76,13 @@ def run_sequence(
             step_scales_map: dict[str, list[float]] = {step.name: list(template_scales) for step in steps}
 
             loop = 0
+            unsuccessful_rounds = 0
             while not stop_keys.stop_requested and (loops <= 0 or loop < loops):
                 loop += 1
                 print(f"Loop {loop}" if loops <= 0 else f"Loop {loop}/{loops}")
 
                 step_index = 0
+                matched_in_round = False
                 while step_index < len(steps):
                     if stop_keys.stop_requested:
                         break
@@ -136,6 +139,7 @@ def run_sequence(
                             step_index += 1
                             continue
 
+                    matched_in_round = True
                     click_x, click_y = match_click_coordinates(match, click_scale, spot_jitter_pixels)
                     wait_seconds = humanized_delay(step.wait_seconds, time_jitter_seconds)
                     pre_click_delay = random.uniform(0.0, pre_click_jitter_seconds) if pre_click_jitter_seconds > 0 else 0.0
@@ -167,6 +171,21 @@ def run_sequence(
                         )
                         time.sleep(wait_seconds)
                     step_index += 1
+
+                if stop_keys.stop_requested:
+                    break
+                if matched_in_round:
+                    unsuccessful_rounds = 0
+                    continue
+
+                unsuccessful_rounds += 1
+                print(
+                    f"No templates matched in full round {unsuccessful_rounds}/"
+                    f"{MAX_UNSUCCESSFUL_ROUNDS}."
+                )
+                if unsuccessful_rounds >= MAX_UNSUCCESSFUL_ROUNDS:
+                    print("No templates matched for 2 full rounds; ending sequence.")
+                    break
     finally:
         stop_keys.stop()
 

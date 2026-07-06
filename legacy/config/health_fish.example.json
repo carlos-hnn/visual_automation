@@ -1,0 +1,16 @@
+{
+  "monitor": 1,
+  "bar_region": [1414, 753, 19, 272],
+  "inventory_region": [1463, 753, 198, 269],
+  "templates_dir": "templates/health_fish",
+  "threshold_percent": 70.0,
+  "check_seconds": 5.0,
+  "required_low_readings": 2,
+  "cooldown_seconds": 3.0,
+  "match_threshold": 0.78,
+  "template_scales": "0.5",
+  "countdown": 2.0,
+  "click_scale": 1.0,
+  "spot_jitter": 3,
+  "dry_run": false
+}

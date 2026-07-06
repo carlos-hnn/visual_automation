@@ -1,14 +1,18 @@
 # Legacy
 
-This folder contains the pre-v2 project experiments: older scripts, configs,
-templates, and debug evidence.
+This folder contains pre-v2 experiments plus superseded standalone flows,
+configs, and wrappers retained for reference.
 
-The active v2 path is intentionally smaller:
+The active entry points are intentionally smaller:
 
+- `scripts/combat_mode.py`
 - `scripts/template_click_sequence.py`
-- `v2/`
-- `templates/template_click_sequence/`
-- `config/template_click_sequence.example.json`
+- the other current wrappers under `scripts/`
+
+The former standalone health/fish, prayer/potion, and Slayer-target scripts are
+archived under `legacy/scripts`, `legacy/v2/flows`, and `legacy/config`. Their
+fish and potion images remain in the active `templates/` tree because
+`combat_mode` uses them.
 
 Use this folder only as a reference when extracting a reusable game state,
 action, setting, or template pattern into v2.

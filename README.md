@@ -1,12 +1,28 @@
 # Visual Automation v2
 
-Active automation is now centered on v2 flows: `template_click_sequence` and `woodcut_firemake`.
+Active automation is available through a local control panel or the individual
+v2 command-line wrappers.
+
+## Control panel
+
+Double-click `Automation Control Panel.command` in Finder. It opens a local
+browser app where you can:
+
+- select any active automation;
+- edit every JSON parameter, including nested regions and thresholds;
+- save settings without changing the example configs;
+- start and stop one automation at a time;
+- view live script output;
+- confirm explicitly before starting a configuration with `dry_run: false`.
+
+Saved app settings live under `config/runtime/`.
 
 ## Run
 
 ```bash
 .venv/bin/python scripts/template_click_sequence.py --dry-run
 .venv/bin/python scripts/woodcut_firemake.py --dry-run
+.venv/bin/python scripts/combat_mode.py --dry-run
 ```
 
 Using the example config:
@@ -23,6 +39,9 @@ Remove `--dry-run` or pass `--no-dry-run` only when you intentionally want live 
 ```text
 scripts/template_click_sequence.py
 scripts/woodcut_firemake.py
+scripts/combat_mode.py
+scripts/gem_cutting.py
+scripts/steel_cannonball.py
 v2/
 templates/template_click_sequence/
 templates/woodcut_firemake/
