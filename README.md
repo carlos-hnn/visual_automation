@@ -17,6 +17,11 @@ browser app where you can:
 
 Saved app settings live under `config/runtime/`.
 
+Each automation exposes a `mouse_backend` setting. `standard` uses the normal
+visible cursor. `quartz` is an experimental macOS background-click backend that
+posts left-click events without updating the visible cursor; keep `dry_run`
+enabled until the target application has been tested deliberately.
+
 ## Run
 
 ```bash

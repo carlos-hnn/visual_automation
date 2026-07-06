@@ -1,4 +1,5 @@
 {
+  "mouse_backend": "standard",
   "templates_dir": "templates/steel_cannonball",
   "monitor": 1,
   "template_scales": "0.5",

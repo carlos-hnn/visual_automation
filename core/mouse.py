@@ -166,3 +166,31 @@ class MouseController:
 
     def _ease_in_out(self, progress: float) -> float:
         return progress * progress * (3.0 - 2.0 * progress)
+
+
+class QuartzMouseController(MouseController):
+    """Experimental macOS click backend that does not update the visible cursor."""
+
+    def __init__(self, config: MouseConfig | None = None) -> None:
+        self.config = config or MouseConfig()
+        try:
+            import Quartz  # type: ignore[import-not-found]
+        except ImportError as exc:
+            raise RuntimeError("Quartz mouse backend requires PyObjC Quartz on macOS") from exc
+        self._quartz = Quartz
+
+    def click(self, x: int, y: int, button: str = "left") -> None:
+        if button != "left":
+            raise ValueError("Experimental Quartz backend currently supports only left clicks")
+        point = (float(x), float(y))
+        down_error = self._quartz.CGPostMouseEvent(point, False, 1, True)
+        time.sleep(0.035)
+        up_error = self._quartz.CGPostMouseEvent(point, False, 1, False)
+        success = getattr(self._quartz, "kCGErrorSuccess", 0)
+        if down_error != success or up_error != success:
+            raise RuntimeError(f"Quartz click failed: down={down_error}, up={up_error}")
+        time.sleep(self.config.click_pause_seconds)
+
+    def move_to(self, x: int, y: int) -> None:
+        # Background Quartz clicks intentionally leave the user's pointer alone.
+        return

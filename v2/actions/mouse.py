@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
 import random
 
-from core.mouse import MouseConfig, MouseController
+from core.mouse import MouseConfig, MouseController, QuartzMouseController
 from core.vision import TemplateMatch
 
 
@@ -12,15 +13,19 @@ def build_mouse(
     click_pause_seconds: float = 0.05,
     spot_jitter_pixels: int = 4,
 ) -> MouseController:
-    return MouseController(
-        MouseConfig(
-            move_duration_min=move_duration_min,
-            move_duration_max=max(move_duration_min, move_duration_max),
-            click_pause_seconds=click_pause_seconds,
-            random_offset_pixels=max(0, spot_jitter_pixels),
-            point_tolerance_pixels=max(0, spot_jitter_pixels),
-        )
+    config = MouseConfig(
+        move_duration_min=move_duration_min,
+        move_duration_max=max(move_duration_min, move_duration_max),
+        click_pause_seconds=click_pause_seconds,
+        random_offset_pixels=max(0, spot_jitter_pixels),
+        point_tolerance_pixels=max(0, spot_jitter_pixels),
     )
+    backend = os.environ.get("VISUAL_AUTOMATION_MOUSE_BACKEND", "standard").strip().lower()
+    if backend == "standard":
+        return MouseController(config)
+    if backend == "quartz":
+        return QuartzMouseController(config)
+    raise ValueError(f"Unknown mouse backend: {backend}; expected standard or quartz")
 
 
 def match_click_coordinates(match: TemplateMatch, click_scale: float, spot_jitter_pixels: int) -> tuple[int, int]:

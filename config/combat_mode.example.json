@@ -1,6 +1,7 @@
 {
   "monitor": 1,
   "window_title": "RuneLite",
+  "mouse_backend": "standard",
   "combat_region": {"left": 8, "top": 72, "width": 130, "height": 22},
   "target_region": {"left": 4, "top": 140, "width": 766, "height": 745},
   "health_region": {"left": 519, "top": 705, "width": 19, "height": 272},
