@@ -17,8 +17,10 @@ from core.vision import TemplateMatch
 from v2.actions import StopKeys, build_mouse, match_click_coordinates
 from v2.config import load_json_config, value_from_config
 from v2.definitions import ROOT
-from v2.flows.woodcut_firemake import find_window_bounds
+from v2.game_states.combat import detect_combat_activity, detect_health_status, detect_prayer_status
 from v2.game_states.template_matching import best_template_match, parse_scales
+from v2.platforming import add_platform_argument, platform_template_dir, resolve_platform
+from v2.template_config import find_window_bounds
 
 install_timestamped_print()
 
@@ -39,6 +41,13 @@ class RedTarget:
         return self.x + self.width // 2, self.y + self.height // 2
 
 
+@dataclass(frozen=True)
+class ConsumableCandidate:
+    label: str
+    match: TemplateMatch
+    scale: float = 1.0
+
+
 def parse_region(value: Any, label: str) -> dict[str, int]:
     if not isinstance(value, dict):
         raise ValueError(f"{label} must contain left, top, width, height")
@@ -49,6 +58,12 @@ def parse_region(value: Any, label: str) -> dict[str, int]:
     if region["width"] <= 0 or region["height"] <= 0:
         raise ValueError(f"{label} width and height must be positive")
     return region
+
+
+def parse_hsv_triplet(value: Any, label: str) -> tuple[int, int, int]:
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        raise ValueError(f"{label} must contain three HSV values")
+    return tuple(max(0, min(255, int(item))) for item in value)
 
 
 def absolute_region(window: dict[str, int], relative: dict[str, int]) -> dict[str, int]:
@@ -67,30 +82,9 @@ def red_mask(image: np.ndarray) -> np.ndarray:
     return cv2.bitwise_or(low_red, high_red)
 
 
-def combat_green_fraction(frame: Frame) -> float:
-    hsv = cv2.cvtColor(frame.image, cv2.COLOR_BGR2HSV)
-    green = cv2.inRange(hsv, np.array((35, 110, 70), np.uint8), np.array((90, 255, 255), np.uint8))
-    return float(np.count_nonzero(green)) / max(1, green.size)
-
-
-def health_percent(frame: Frame, minimum_row_coverage: float = 0.18) -> float:
-    hsv = cv2.cvtColor(frame.image, cv2.COLOR_BGR2HSV)
-    low_red = cv2.inRange(hsv, np.array((0, 120, 95), np.uint8), np.array((12, 255, 255), np.uint8))
-    high_red = cv2.inRange(hsv, np.array((168, 120, 95), np.uint8), np.array((179, 255, 255), np.uint8))
-    mask = cv2.bitwise_or(low_red, high_red)
-    rows = np.flatnonzero(np.count_nonzero(mask, axis=1) / max(1, mask.shape[1]) >= minimum_row_coverage)
-    if rows.size == 0:
-        return 0.0
-    return max(0.0, min(100.0, (mask.shape[0] - int(rows.min())) * 100.0 / mask.shape[0]))
-
-
-def prayer_percent(frame: Frame, minimum_row_coverage: float = 0.18) -> float:
-    hsv = cv2.cvtColor(frame.image, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, np.array((45, 100, 80), np.uint8), np.array((100, 255, 255), np.uint8))
-    rows = np.flatnonzero(np.count_nonzero(mask, axis=1) / max(1, mask.shape[1]) >= minimum_row_coverage)
-    if rows.size == 0:
-        return 0.0
-    return max(0.0, min(100.0, (mask.shape[0] - int(rows.min())) * 100.0 / mask.shape[0]))
+def green_marker_mask(image: np.ndarray, hsv_min: tuple[int, int, int], hsv_max: tuple[int, int, int]) -> np.ndarray:
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    return cv2.inRange(hsv, np.array(hsv_min, np.uint8), np.array(hsv_max, np.uint8))
 
 
 def consumable_templates(directory: Path, label: str) -> list[Path]:
@@ -106,14 +100,56 @@ def best_consumable_match(
     monitor: int,
     scales: list[float],
     inventory_region: dict[str, int],
-) -> tuple[Path, TemplateMatch, float]:
+) -> ConsumableCandidate:
     candidates = []
     for template in templates:
         match, _frame, scale = best_template_match(
             screen, template, monitor, scales, region=inventory_region
         )
-        candidates.append((template, match, scale))
-    return max(candidates, key=lambda item: item[1].score)
+        candidates.append(ConsumableCandidate(template.name, match, scale))
+    return max(candidates, key=lambda item: item.match.score)
+
+
+def best_green_marked_inventory_item(
+    screen: ScreenCapture,
+    inventory_region: dict[str, int],
+    hsv_min: tuple[int, int, int],
+    hsv_max: tuple[int, int, int],
+    min_green_pixels: int,
+    min_dimension: int,
+    max_dimension: int,
+    grouping_pixels: int,
+) -> ConsumableCandidate | None:
+    frame = screen.capture(inventory_region)
+    raw_mask = green_marker_mask(frame.image, hsv_min, hsv_max)
+    kernel_size = max(1, grouping_pixels * 2 + 1)
+    grouped = cv2.dilate(
+        raw_mask,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)),
+        iterations=1,
+    )
+    count, labels, stats, _centroids = cv2.connectedComponentsWithStats(grouped)
+    candidates: list[TemplateMatch] = []
+    for label in range(1, count):
+        x, y, width, height, _area = (int(item) for item in stats[label])
+        green_pixels = int(np.count_nonzero(raw_mask[labels == label]))
+        if green_pixels < min_green_pixels:
+            continue
+        if min(width, height) < min_dimension or max(width, height) > max_dimension:
+            continue
+        candidates.append(
+            TemplateMatch(
+                x=frame.left + x,
+                y=frame.top + y,
+                width=width,
+                height=height,
+                score=float(green_pixels),
+            )
+        )
+    if not candidates:
+        return None
+    candidates.sort(key=lambda match: (match.y, match.x))
+    return ConsumableCandidate("green food marker", candidates[0])
 
 
 def mask_ignored_regions(
@@ -194,7 +230,11 @@ def run(
     target_region_relative: dict[str, int], ignored_regions_relative: list[dict[str, int]],
     health_monitor_enabled: bool, prayer_monitor_enabled: bool,
     health_region_relative: dict[str, int], inventory_region_relative: dict[str, int],
-    fish_templates_dir: Path, health_threshold_percent: float, health_check_seconds: float,
+    fish_templates_dir: Path, food_detection_mode: str,
+    food_marker_hsv_min: tuple[int, int, int], food_marker_hsv_max: tuple[int, int, int],
+    food_marker_min_green_pixels: int, food_marker_min_dimension: int,
+    food_marker_max_dimension: int, food_marker_grouping_pixels: int,
+    health_threshold_percent: float, health_check_seconds: float,
     required_low_health_readings: int, eat_cooldown_seconds: float,
     fish_match_threshold: float, fish_template_scales: list[float],
     prayer_region_relative: dict[str, int], potion_templates_dir: Path,
@@ -218,7 +258,11 @@ def run(
     prayer_region = absolute_region(window, prayer_region_relative)
     inventory_region = absolute_region(window, inventory_region_relative)
     anchor = (window["left"] + anchor_relative[0], window["top"] + anchor_relative[1])
-    fish_paths = consumable_templates(fish_templates_dir, "fish") if health_monitor_enabled else []
+    fish_paths = (
+        consumable_templates(fish_templates_dir, "fish")
+        if health_monitor_enabled and food_detection_mode == "template"
+        else []
+    )
     potion_paths = consumable_templates(potion_templates_dir, "potion") if prayer_monitor_enabled else []
     print(f"RuneLite window={window}; character_anchor={anchor}")
 
@@ -246,27 +290,45 @@ def run(
                 now = time.monotonic()
                 consumed_this_tick = False
                 if now >= next_health_check and health_monitor_enabled:
-                    percent = health_percent(screen.capture(health_region))
-                    low_health_readings = low_health_readings + 1 if percent < health_threshold_percent else 0
+                    health_status = detect_health_status(screen.capture(health_region), health_threshold_percent)
+                    low_health_readings = low_health_readings + 1 if health_status.is_low else 0
                     print(
-                        f"health={percent:.1f}% "
+                        f"health={health_status.percent:.1f}% "
                         f"low={low_health_readings}/{required_low_health_readings}"
                     )
                     if (
                         low_health_readings >= required_low_health_readings
                         and now - last_eat >= eat_cooldown_seconds
                     ):
-                        template, match, scale = best_consumable_match(
-                            screen, fish_paths, monitor, fish_template_scales, inventory_region
-                        )
-                        if match.score < fish_match_threshold:
-                            print(f"no fish found; best={template.name} score={match.score:.3f}")
+                        if food_detection_mode == "green_marker":
+                            candidate = best_green_marked_inventory_item(
+                                screen,
+                                inventory_region,
+                                food_marker_hsv_min,
+                                food_marker_hsv_max,
+                                food_marker_min_green_pixels,
+                                food_marker_min_dimension,
+                                food_marker_max_dimension,
+                                food_marker_grouping_pixels,
+                            )
+                            if candidate is None:
+                                print("no green food marker found")
+                                threshold_met = False
+                            else:
+                                threshold_met = True
                         else:
-                            fish_x, fish_y = match_click_coordinates(match, 1.0, spot_jitter)
+                            candidate = best_consumable_match(
+                                screen, fish_paths, monitor, fish_template_scales, inventory_region
+                            )
+                            threshold_met = candidate.match.score >= fish_match_threshold
+                        if not threshold_met and candidate is not None:
+                            print(f"no fish found; best={candidate.label} score={candidate.match.score:.3f}")
+                        elif threshold_met and candidate is not None:
+                            fish_x, fish_y = match_click_coordinates(candidate.match, 1.0, spot_jitter)
                             if dry_run:
                                 print(
-                                    f"would eat {template.name} score={match.score:.3f} "
-                                    f"scale={scale:g} at=({fish_x},{fish_y})"
+                                    f"would eat {candidate.label} score={candidate.match.score:.3f} "
+                                    f"scale={candidate.scale:g} at=({fish_x},{fish_y})"
                                 )
                             else:
                                 mouse.click(fish_x, fish_y)
@@ -274,8 +336,8 @@ def run(
                                 park_y = inventory_region["top"] + inventory_region["height"] // 2
                                 mouse.move_to(park_x, park_y)
                                 print(
-                                    f"ate {template.name} score={match.score:.3f} "
-                                    f"scale={scale:g} at=({fish_x},{fish_y})"
+                                    f"ate {candidate.label} score={candidate.match.score:.3f} "
+                                    f"scale={candidate.scale:g} at=({fish_x},{fish_y})"
                                 )
                             last_eat = now
                             low_health_readings = 0
@@ -283,10 +345,10 @@ def run(
                             attack_pending_until = max(attack_pending_until, now + 1.2)
 
                 if now >= next_health_check and prayer_monitor_enabled:
-                    prayer = prayer_percent(screen.capture(prayer_region))
-                    low_prayer_readings = low_prayer_readings + 1 if prayer < prayer_threshold_percent else 0
+                    prayer_status = detect_prayer_status(screen.capture(prayer_region), prayer_threshold_percent)
+                    low_prayer_readings = low_prayer_readings + 1 if prayer_status.is_low else 0
                     print(
-                        f"prayer={prayer:.1f}% "
+                        f"prayer={prayer_status.percent:.1f}% "
                         f"low={low_prayer_readings}/{required_low_prayer_readings}"
                     )
                     if (
@@ -294,17 +356,17 @@ def run(
                         and low_prayer_readings >= required_low_prayer_readings
                         and now - last_drink >= drink_cooldown_seconds
                     ):
-                        template, match, scale = best_consumable_match(
+                        candidate = best_consumable_match(
                             screen, potion_paths, monitor, potion_template_scales, inventory_region
                         )
-                        if match.score < potion_match_threshold:
-                            print(f"no prayer potion found; best={template.name} score={match.score:.3f}")
+                        if candidate.match.score < potion_match_threshold:
+                            print(f"no prayer potion found; best={candidate.label} score={candidate.match.score:.3f}")
                         else:
-                            potion_x, potion_y = match_click_coordinates(match, 1.0, spot_jitter)
+                            potion_x, potion_y = match_click_coordinates(candidate.match, 1.0, spot_jitter)
                             if dry_run:
                                 print(
-                                    f"would drink {template.name} score={match.score:.3f} "
-                                    f"scale={scale:g} at=({potion_x},{potion_y})"
+                                    f"would drink {candidate.label} score={candidate.match.score:.3f} "
+                                    f"scale={candidate.scale:g} at=({potion_x},{potion_y})"
                                 )
                             else:
                                 mouse.click(potion_x, potion_y)
@@ -312,8 +374,8 @@ def run(
                                 park_y = inventory_region["top"] + inventory_region["height"] // 2
                                 mouse.move_to(park_x, park_y)
                                 print(
-                                    f"drank {template.name} score={match.score:.3f} "
-                                    f"scale={scale:g} at=({potion_x},{potion_y})"
+                                    f"drank {candidate.label} score={candidate.match.score:.3f} "
+                                    f"scale={candidate.scale:g} at=({potion_x},{potion_y})"
                                 )
                             last_drink = now
                             low_prayer_readings = 0
@@ -322,8 +384,9 @@ def run(
                 if now >= next_health_check:
                     next_health_check = now + health_check_seconds
 
-                green_fraction = combat_green_fraction(screen.capture(combat_region))
-                in_combat = green_fraction >= combat_green_threshold
+                combat_status = detect_combat_activity(screen.capture(combat_region), combat_green_threshold)
+                green_fraction = combat_status.green_fraction
+                in_combat = combat_status.in_combat
                 if in_combat:
                     combat_was_active = True
                     out_of_combat_readings = 0
@@ -340,8 +403,9 @@ def run(
                             time.sleep(min(0.10, deadline - time.monotonic()))
                         if stop_keys.stop_requested:
                             break
-                        green_fraction = combat_green_fraction(screen.capture(combat_region))
-                        in_combat = green_fraction >= combat_green_threshold
+                        combat_status = detect_combat_activity(screen.capture(combat_region), combat_green_threshold)
+                        green_fraction = combat_status.green_fraction
+                        in_combat = combat_status.in_combat
                         if in_combat:
                             print(f"combat resumed during wait green={green_fraction:.3f}")
                             out_of_combat_readings = 0
@@ -427,10 +491,12 @@ def main() -> int:
         help="Enable or disable automatic prayer-potion drinking",
     )
     parser.add_argument("--calibrate", action="store_true", help="Inspect one frame, save target annotations, and exit")
+    add_platform_argument(parser, config)
     parser.add_argument("--countdown", type=float, default=value_from_config(config, "countdown", 2.0))
     args = parser.parse_args()
 
     try:
+        args.platform = resolve_platform(args.platform)
         combat_region = parse_region(value_from_config(config, "combat_region", {}), "combat_region")
         target_region = parse_region(value_from_config(config, "target_region", {}), "target_region")
         health_region = parse_region(value_from_config(config, "health_region", {}), "health_region")
@@ -443,10 +509,15 @@ def main() -> int:
         anchor_value = value_from_config(config, "character_anchor", {})
         if not isinstance(anchor_value, dict) or "x" not in anchor_value or "y" not in anchor_value:
             raise ValueError("character_anchor must contain x and y")
+        food_detection_mode = str(value_from_config(config, "food_detection_mode", "template")).strip().lower()
+        if food_detection_mode not in {"template", "green_marker"}:
+            raise ValueError("food_detection_mode must be template or green_marker")
         templates_dir_value = Path(value_from_config(config, "fish_templates_dir", "templates/health_fish"))
         templates_dir = templates_dir_value if templates_dir_value.is_absolute() else ROOT / templates_dir_value
         potions_dir_value = Path(value_from_config(config, "potion_templates_dir", "templates/prayer_potions"))
         potions_dir = potions_dir_value if potions_dir_value.is_absolute() else ROOT / potions_dir_value
+        templates_dir = platform_template_dir(templates_dir, config, args.platform)
+        potions_dir = platform_template_dir(potions_dir, config, args.platform)
         return run(
             monitor=int(value_from_config(config, "monitor", 1)),
             window_title=str(value_from_config(config, "window_title", "RuneLite")),
@@ -458,6 +529,13 @@ def main() -> int:
             health_region_relative=health_region,
             inventory_region_relative=inventory_region,
             fish_templates_dir=templates_dir,
+            food_detection_mode=food_detection_mode,
+            food_marker_hsv_min=parse_hsv_triplet(value_from_config(config, "food_marker_hsv_min", [35, 110, 70]), "food_marker_hsv_min"),
+            food_marker_hsv_max=parse_hsv_triplet(value_from_config(config, "food_marker_hsv_max", [90, 255, 255]), "food_marker_hsv_max"),
+            food_marker_min_green_pixels=max(1, int(value_from_config(config, "food_marker_min_green_pixels", 250))),
+            food_marker_min_dimension=max(1, int(value_from_config(config, "food_marker_min_dimension", 8))),
+            food_marker_max_dimension=max(1, int(value_from_config(config, "food_marker_max_dimension", 70))),
+            food_marker_grouping_pixels=max(0, int(value_from_config(config, "food_marker_grouping_pixels", 2))),
             health_threshold_percent=max(0.0, min(100.0, float(value_from_config(config, "health_threshold_percent", 70.0)))),
             health_check_seconds=max(0.1, float(value_from_config(config, "health_check_seconds", 5.0))),
             required_low_health_readings=max(1, int(value_from_config(config, "required_low_health_readings", 2))),

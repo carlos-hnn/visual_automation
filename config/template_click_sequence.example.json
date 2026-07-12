@@ -1,6 +1,10 @@
 {
   "mouse_backend": "standard",
+  "platform": "auto",
   "templates_dir": "templates/template_click_sequence",
+  "template_dirs_by_platform": {
+    "windows": "templates/template_click_sequence/windows"
+  },
   "order": ["1", "2", "3", "4", "5", "6"],
   "waits": "5,21,13,12,4,10",
   "monitor": 1,

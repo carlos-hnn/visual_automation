@@ -15,8 +15,12 @@ from core.terminal import install_timestamped_print
 from v2.actions import StopKeys, build_mouse, humanized_delay, match_click_coordinates
 from v2.config import load_json_config, value_from_config
 from v2.definitions import ROOT
+from v2.game_states.inventory import detect_inventory_status
 from v2.game_states.template_matching import parse_scales
-from v2.game_states.woodcut_firemake import TemplateState, WoodcutFiremakeState
+from v2.game_states.template_state import TemplateState
+from v2.game_states.woodcut_firemake import WoodcutFiremakeState
+from v2.platforming import add_platform_argument, platform_template_dir, resolve_platform
+from v2.template_config import build_template_states, resolve_regions
 
 install_timestamped_print()
 
@@ -68,140 +72,13 @@ DEFAULTS = WoodcutFiremakeDefaults()
 DEFAULT_CONFIG_PATH = ROOT / "config" / "woodcut_firemake.example.json"
 
 
-def template_path(templates_dir: Path, name: str) -> Path:
-    return templates_dir / f"{name}.png"
-
-
-def threshold_for(config: dict, name: str, default: float) -> float:
-    thresholds = value_from_config(config, "thresholds", {})
-    if isinstance(thresholds, dict) and name in thresholds:
-        return float(thresholds[name])
-    if name.startswith("tree") and isinstance(thresholds, dict) and "tree" in thresholds:
-        return float(thresholds["tree"])
-    return default
-
-
-def scales_for(config: dict[str, Any], name: str, default_scales: list[float]) -> tuple[float, ...]:
-    scale_config = value_from_config(config, "template_scales_by_name", {})
-    if not isinstance(scale_config, dict):
-        return tuple(default_scales)
-    value = scale_config.get(name)
-    if value is None and name.startswith("tree"):
-        value = scale_config.get("tree")
-    if value is None:
-        return tuple(default_scales)
-    if isinstance(value, str):
-        return tuple(parse_scales(value))
-    if isinstance(value, list):
-        return tuple(float(item) for item in value if float(item) > 0)
-    return tuple(default_scales)
-
-
-def region_for(config: dict[str, Any], name: str) -> dict[str, int] | None:
-    regions = value_from_config(config, "regions", {})
-    if not isinstance(regions, dict):
-        return None
-    region = regions.get(name)
-    if region is None and name.startswith("tree"):
-        region = regions.get("tree")
-    if not isinstance(region, dict):
-        return None
-    required = ("left", "top", "width", "height")
-    if any(key not in region for key in required):
-        raise ValueError(f"Region for {name} must contain left, top, width, height")
-    return {key: int(region[key]) for key in required}
-
-
-def click_offset_for(config: dict[str, Any], name: str) -> tuple[int, int]:
-    offsets = value_from_config(config, "click_offsets", {})
-    if not isinstance(offsets, dict):
-        return (0, 0)
-    offset = offsets.get(name)
-    if offset is None and name.startswith("tree"):
-        offset = offsets.get("tree")
-    if not isinstance(offset, dict):
-        return (0, 0)
-    return (int(offset.get("x", 0)), int(offset.get("y", 0)))
-
-
-def find_window_bounds(title_contains: str) -> dict[str, int] | None:
-    try:
-        import Quartz  # type: ignore[import-not-found]
-    except Exception:
-        return None
-
-    windows = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, Quartz.kCGNullWindowID)
-    for window in windows:
-        owner = str(window.get("kCGWindowOwnerName") or "")
-        title = str(window.get("kCGWindowName") or "")
-        if title_contains not in owner and title_contains not in title:
-            continue
-        bounds = window.get("kCGWindowBounds")
-        if not bounds:
-            continue
-        return {
-            "left": int(bounds["X"]),
-            "top": int(bounds["Y"]),
-            "width": int(bounds["Width"]),
-            "height": int(bounds["Height"]),
-        }
-    return None
-
-
-def resolve_regions(config: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int] | None]:
-    if not bool(value_from_config(config, "regions_are_window_relative", False)):
-        return config, None
-
-    window_title = str(value_from_config(config, "window_title", "RuneLite"))
-    window = find_window_bounds(window_title)
-    if window is None:
-        print(f"RuneLite window not found for title/owner containing: {window_title}")
-        return config, None
-
-    resolved = dict(config)
-    raw_regions = value_from_config(config, "regions", {})
-    if not isinstance(raw_regions, dict):
-        return resolved, window
-
-    absolute_regions: dict[str, dict[str, int]] = {}
-    for name, raw_region in raw_regions.items():
-        if not isinstance(raw_region, dict):
-            continue
-        required = ("left", "top", "width", "height")
-        if any(key not in raw_region for key in required):
-            continue
-        left = window["left"] + int(raw_region["left"])
-        top = window["top"] + int(raw_region["top"])
-        max_width = max(1, window["left"] + window["width"] - left)
-        max_height = max(1, window["top"] + window["height"] - top)
-        absolute_regions[str(name)] = {
-            "left": left,
-            "top": top,
-            "width": min(int(raw_region["width"]), max_width),
-            "height": min(int(raw_region["height"]), max_height),
-        }
-
-    resolved["regions"] = absolute_regions
-    return resolved, window
-
-
 def build_templates(
     templates_dir: Path,
     threshold: float,
     default_scales: list[float],
     config: dict[str, Any],
 ) -> dict[str, TemplateState]:
-    return {
-        name: TemplateState(
-            name=name,
-            path=template_path(templates_dir, name),
-            threshold=threshold_for(config, name, threshold),
-            scales=scales_for(config, name, default_scales),
-            region=region_for(config, name),
-            click_offset=click_offset_for(config, name),
-        )
-        for name in TEMPLATE_NAMES
-    }
+    return build_template_states(TEMPLATE_NAMES, templates_dir, threshold, default_scales, config)
 
 
 def missing_templates(templates: dict[str, TemplateState]) -> list[Path]:
@@ -370,9 +247,11 @@ def run_flow(
     dry_run: bool,
     move_duration_min: float,
     move_duration_max: float,
+    platform: str,
     config: dict,
 ) -> int:
     config, window = resolve_regions(config)
+    templates_dir = platform_template_dir(templates_dir, config, resolve_platform(platform))
     templates = build_templates(templates_dir, threshold, template_scales, config)
     tree_templates = available_tree_templates(templates)
     missing = missing_templates(templates)
@@ -423,18 +302,19 @@ def run_flow(
                     wait_ticks("woodcutting_status", 6, tick_seconds, time_jitter, dry_run)
                     continue
 
-                empty_slot_match, empty_slot_score, empty_slot_scale = state.find(
+                inventory_status = detect_inventory_status(
+                    state,
                     templates["empty_inventory_slot"],
                     inventory_timeout,
                 )
-                inventory_has_empty_slot = empty_slot_match is not None
                 print(
                     f"empty_inventory_slot: "
-                    f"{'found' if inventory_has_empty_slot else 'not found'} "
-                    f"score={empty_slot_score:.3f}, threshold={templates['empty_inventory_slot'].threshold:.3f}, "
-                    f"scale={empty_slot_scale:g}"
+                    f"{'found' if inventory_status.has_empty_slot else 'not found'} "
+                    f"score={inventory_status.empty_slot_score:.3f}, "
+                    f"threshold={inventory_status.empty_slot_threshold:.3f}, "
+                    f"scale={inventory_status.empty_slot_scale:g}"
                 )
-                if inventory_has_empty_slot:
+                if inventory_status.has_empty_slot:
                     if click_first_template(
                         state,
                         mouse,
@@ -508,9 +388,11 @@ def run_calibration(
     template_scales: list[float],
     threshold: float,
     poll_seconds: float,
+    platform: str,
     config: dict,
 ) -> int:
     config, window = resolve_regions(config)
+    templates_dir = platform_template_dir(templates_dir, config, resolve_platform(platform))
     templates = build_templates(templates_dir, threshold, template_scales, config)
     missing = missing_templates(templates)
     if missing:
@@ -574,14 +456,14 @@ def main() -> int:
         print(exc)
         return 1
 
-    templates_dir_default = Path(value_from_config(config, "templates_dir", DEFAULTS.templates_dir))
-    if not templates_dir_default.is_absolute():
-        templates_dir_default = ROOT / templates_dir_default
+    platform_value = resolve_platform(value_from_config(config, "platform", "auto"))
+    templates_dir_default = platform_template_dir(value_from_config(config, "templates_dir", DEFAULTS.templates_dir), config, platform_value)
 
     parser = argparse.ArgumentParser(
         description="Woodcut maple logs, burn a full inventory, then return to the tree.",
         parents=[config_parser],
     )
+    add_platform_argument(parser, config)
     parser.add_argument("--templates-dir", type=Path, default=templates_dir_default, help="Directory containing this script's templates")
     parser.add_argument("--monitor", type=int, default=value_from_config(config, "monitor", DEFAULTS.monitor), help="MSS monitor index")
     parser.add_argument("--template-scales", default=value_from_config(config, "template_scales", DEFAULTS.template_scales), help="Comma-separated scale(s) applied to templates")
@@ -606,6 +488,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        args.platform = resolve_platform(args.platform)
         template_scales = parse_scales(str(args.template_scales))
         if args.calibrate:
             return run_calibration(
@@ -614,6 +497,7 @@ def main() -> int:
                 template_scales=template_scales,
                 threshold=float(args.threshold),
                 poll_seconds=max(0.01, float(args.poll_seconds)),
+                platform=args.platform,
                 config=config,
             )
         return run_flow(
@@ -637,6 +521,7 @@ def main() -> int:
             dry_run=bool(args.dry_run),
             move_duration_min=max(0.0, float(args.move_duration_min)),
             move_duration_max=max(0.0, float(args.move_duration_max)),
+            platform=args.platform,
             config=config,
         )
     except (FileNotFoundError, ValueError) as exc:

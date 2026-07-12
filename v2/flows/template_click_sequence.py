@@ -17,6 +17,7 @@ from v2.definitions import ROOT, TemplateSequenceDefaults
 from v2.game_states import TemplateStep, fallback_candidates, load_template_steps, rotate_steps, wait_for_template_match
 from v2.game_states.template_matching import best_template_match, parse_scales
 from v2.game_states.template_sequence import parse_order
+from v2.platforming import add_platform_argument, platform_template_dir, resolve_platform
 
 install_timestamped_print()
 
@@ -205,14 +206,14 @@ def main() -> int:
     else:
         order_default = [str(item) for item in order_default]
 
-    templates_dir_default = Path(value_from_config(config, "templates_dir", DEFAULTS.templates_dir))
-    if not templates_dir_default.is_absolute():
-        templates_dir_default = ROOT / templates_dir_default
+    platform_value = resolve_platform(value_from_config(config, "platform", "auto"))
+    templates_dir_default = platform_template_dir(value_from_config(config, "templates_dir", DEFAULTS.templates_dir), config, platform_value)
 
     parser = argparse.ArgumentParser(
         description="Find numbered game templates on screen, click each one, and wait between clicks.",
         parents=[config_parser],
     )
+    add_platform_argument(parser, config)
     parser.add_argument("--templates-dir", type=Path, default=templates_dir_default, help="Directory containing route templates")
     parser.add_argument("--order", type=parse_order, default=order_default, help="Comma-separated template order")
     parser.add_argument("--waits", default=value_from_config(config, "waits", DEFAULTS.waits), help="One wait value for all steps, or comma-separated waits")
@@ -237,6 +238,8 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        args.platform = resolve_platform(args.platform)
+        args.templates_dir = platform_template_dir(args.templates_dir, config, args.platform)
         steps = load_template_steps(
             templates_dir=args.templates_dir,
             order=list(args.order),

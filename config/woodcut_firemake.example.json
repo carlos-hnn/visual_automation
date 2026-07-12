@@ -1,6 +1,10 @@
 {
   "mouse_backend": "standard",
+  "platform": "auto",
   "templates_dir": "templates/woodcut_firemake",
+  "template_dirs_by_platform": {
+    "windows": "templates/woodcut_firemake/windows"
+  },
   "window_title": "RuneLite",
   "regions_are_window_relative": true,
   "monitor": 1,

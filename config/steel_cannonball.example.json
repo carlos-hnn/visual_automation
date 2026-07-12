@@ -1,6 +1,10 @@
 {
   "mouse_backend": "standard",
+  "platform": "auto",
   "templates_dir": "templates/steel_cannonball",
+  "template_dirs_by_platform": {
+    "windows": "templates/steel_cannonball/windows"
+  },
   "monitor": 1,
   "template_scales": "0.5",
   "template_scales_by_name": {

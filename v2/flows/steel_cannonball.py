@@ -14,8 +14,12 @@ from core.terminal import install_timestamped_print
 from v2.actions import StopKeys, build_mouse, humanized_delay, match_click_coordinates
 from v2.config import load_json_config, value_from_config
 from v2.definitions import ROOT
-from v2.game_states.woodcut_firemake import TemplateState, WoodcutFiremakeState
+from v2.game_states.bank import detect_bank_status
 from v2.game_states.template_matching import parse_scales
+from v2.game_states.template_state import TemplateState
+from v2.game_states.woodcut_firemake import WoodcutFiremakeState
+from v2.platforming import add_platform_argument, platform_template_dir, resolve_platform
+from v2.template_config import build_template_states
 
 install_timestamped_print()
 
@@ -64,25 +68,7 @@ def build_templates(
     default_scales: list[float],
     config: dict[str, Any],
 ) -> dict[str, TemplateState]:
-    thresholds = value_from_config(config, "thresholds", {})
-    scales_by_name = value_from_config(config, "template_scales_by_name", {})
-    regions = value_from_config(config, "regions", {})
-    click_offsets = value_from_config(config, "click_offsets", {})
-
-    return {
-        name: TemplateState(
-            name=name,
-            path=templates_dir / f"{name}.png",
-            threshold=float(value_from_config(thresholds, name, threshold)) if isinstance(thresholds, dict) else threshold,
-            scales=tuple(parse_scales(str(value_from_config(scales_by_name, name, ",".join(str(s) for s in default_scales))))) if isinstance(scales_by_name, dict) else tuple(default_scales),
-            region=value_from_config(regions, name, None) if isinstance(regions, dict) else None,
-            click_offset=(
-                int(value_from_config(value_from_config(click_offsets, name, {}), "x", 0)) if isinstance(value_from_config(click_offsets, name, {}), dict) else 0,
-                int(value_from_config(value_from_config(click_offsets, name, {}), "y", 0)) if isinstance(value_from_config(click_offsets, name, {}), dict) else 0,
-            ),
-        )
-        for name in TEMPLATE_NAMES
-    }
+    return build_template_states(TEMPLATE_NAMES, templates_dir, threshold, default_scales, config)
 
 
 def click_match(mouse, template: TemplateState, match, scale: float, args, dry_run: bool) -> None:
@@ -148,9 +134,7 @@ def click_with_retries(
 
 def run_flow(args, config: dict[str, Any]) -> int:
     config, window = config, None
-    templates_dir = Path(value_from_config(config, "templates_dir", DEFAULTS.templates_dir))
-    if not templates_dir.is_absolute():
-        templates_dir = ROOT / templates_dir
+    templates_dir = platform_template_dir(value_from_config(config, "templates_dir", DEFAULTS.templates_dir), config, args.platform)
     templates = build_templates(templates_dir, args.threshold, args.template_scales, config)
     required = [templates[name] for name in TEMPLATE_NAMES]
     missing = [template.path for template in required if not template.path.exists()]
@@ -186,7 +170,8 @@ def run_flow(args, config: dict[str, Any]) -> int:
                     wait_action("casting active", args, args.dry_run)
                     continue
 
-                if state.exists(templates["deposit_all"], 0.0):
+                bank_status = detect_bank_status(state, templates["deposit_all"], 0.0)
+                if bank_status.is_open:
                     print("bank: already open")
                 else:
                     if not find_and_click(state, mouse, templates["bank"], args, args.dry_run):
@@ -229,9 +214,7 @@ def run_flow(args, config: dict[str, Any]) -> int:
 
 
 def run_calibration(args, config: dict[str, Any]) -> int:
-    templates_dir = Path(value_from_config(config, "templates_dir", DEFAULTS.templates_dir))
-    if not templates_dir.is_absolute():
-        templates_dir = ROOT / templates_dir
+    templates_dir = platform_template_dir(value_from_config(config, "templates_dir", DEFAULTS.templates_dir), config, args.platform)
     templates = build_templates(templates_dir, args.threshold, args.template_scales, config)
     stop_keys = StopKeys()
     with ScreenCapture(monitor=args.monitor) as screen:
@@ -255,11 +238,11 @@ def main() -> int:
         print(exc)
         return 1
 
-    templates_dir = Path(value_from_config(config, "templates_dir", DEFAULTS.templates_dir))
-    if not templates_dir.is_absolute():
-        templates_dir = ROOT / templates_dir
+    platform_value = resolve_platform(value_from_config(config, "platform", "auto"))
+    templates_dir = platform_template_dir(value_from_config(config, "templates_dir", DEFAULTS.templates_dir), config, platform_value)
 
     parser = argparse.ArgumentParser(description="Steel cannonball furnace automation.")
+    add_platform_argument(parser, config)
     parser.add_argument("--templates-dir", type=Path, default=templates_dir)
     parser.add_argument("--monitor", type=int, default=value_from_config(config, "monitor", DEFAULTS.monitor))
     parser.add_argument("--template-scales", default=value_from_config(config, "template_scales", DEFAULTS.template_scales))
@@ -282,6 +265,7 @@ def main() -> int:
     parser.add_argument("--calibrate", action="store_true", help="Verify all steel cannonball templates on screen.")
     args = parser.parse_args()
     try:
+        args.platform = resolve_platform(args.platform)
         args.template_scales = parse_scales(str(args.template_scales))
         return run_calibration(args, config) if args.calibrate else run_flow(args, config)
     except (ValueError, FileNotFoundError) as exc:

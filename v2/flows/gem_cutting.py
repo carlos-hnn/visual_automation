@@ -14,17 +14,12 @@ from core.terminal import install_timestamped_print
 from v2.actions import StopKeys, build_mouse, humanized_delay, match_click_coordinates
 from v2.config import load_json_config, value_from_config
 from v2.definitions import ROOT
-from v2.flows.woodcut_firemake import (
-    click_offset_for,
-    find_window_bounds,
-    region_for,
-    resolve_regions,
-    scales_for,
-    threshold_for,
-)
+from v2.game_states.bank import detect_bank_status
 from v2.game_states.gem_cutting import GemCuttingState
 from v2.game_states.template_matching import parse_scales
-from v2.game_states.woodcut_firemake import TemplateState
+from v2.game_states.template_state import TemplateState
+from v2.platforming import add_platform_argument, platform_template_dir, resolve_platform
+from v2.template_config import build_template_states, resolve_regions
 
 install_timestamped_print()
 
@@ -78,17 +73,7 @@ def build_templates(
     default_scales: list[float],
     config: dict[str, Any],
 ) -> dict[str, TemplateState]:
-    return {
-        name: TemplateState(
-            name=name,
-            path=templates_dir / f"{name}.png",
-            threshold=threshold_for(config, name, threshold),
-            scales=scales_for(config, name, default_scales),
-            region=region_for(config, name),
-            click_offset=click_offset_for(config, name),
-        )
-        for name in TEMPLATE_NAMES
-    }
+    return build_template_states(TEMPLATE_NAMES, templates_dir, threshold, default_scales, config)
 
 
 def click_match(mouse, template: TemplateState, match, scale: float, args, dry_run: bool) -> None:
@@ -157,6 +142,7 @@ def confirmation_template(templates: dict[str, TemplateState], gem_name: str) ->
 
 def run_flow(args, config: dict[str, Any]) -> int:
     config, window = resolve_regions(config)
+    args.templates_dir = platform_template_dir(args.templates_dir, config, args.platform)
     templates = build_templates(args.templates_dir, args.threshold, args.template_scales, config)
     gems = selected_gem_templates(templates, args.gem)
     bank_gems = selected_bank_gem_templates(templates, args.gem, gems)
@@ -197,7 +183,8 @@ def run_flow(args, config: dict[str, Any]) -> int:
                 attempt += 1
                 target = "continuous" if args.loops <= 0 else str(args.loops)
                 print(f"Gem round attempt {attempt}; completed={completed}/{target}")
-                if state.exists(templates["deposit_all"], 0.0):
+                bank_status = detect_bank_status(state, templates["deposit_all"], 0.0)
+                if bank_status.is_open:
                     print("bank: already open")
                 else:
                     if not find_and_click(state, mouse, templates["bank"], args, args.dry_run):
@@ -256,6 +243,7 @@ def run_flow(args, config: dict[str, Any]) -> int:
 
 def run_calibration(args, config: dict[str, Any]) -> int:
     config, window = resolve_regions(config)
+    args.templates_dir = platform_template_dir(args.templates_dir, config, args.platform)
     templates = build_templates(args.templates_dir, args.threshold, args.template_scales, config)
     stop_keys = StopKeys()
     with ScreenCapture(monitor=args.monitor) as screen:
@@ -284,10 +272,10 @@ def main() -> int:
     except (FileNotFoundError, ValueError) as exc:
         print(exc)
         return 1
-    templates_dir = Path(value_from_config(config, "templates_dir", DEFAULTS.templates_dir))
-    if not templates_dir.is_absolute():
-        templates_dir = ROOT / templates_dir
+    platform_value = resolve_platform(value_from_config(config, "platform", "auto"))
+    templates_dir = platform_template_dir(value_from_config(config, "templates_dir", DEFAULTS.templates_dir), config, platform_value)
     parser = argparse.ArgumentParser(description="Bank, withdraw, cut, and monitor uncut gems.", parents=[pre])
+    add_platform_argument(parser, config)
     parser.add_argument("--templates-dir", type=Path, default=templates_dir)
     parser.add_argument("--gem", choices=("auto", "blue", "red", "green"), default=value_from_config(config, "gem", "green"))
     parser.add_argument("--monitor", type=int, default=value_from_config(config, "monitor", DEFAULTS.monitor))
@@ -310,6 +298,7 @@ def main() -> int:
     parser.add_argument("--calibrate", action="store_true")
     args = parser.parse_args()
     try:
+        args.platform = resolve_platform(args.platform)
         args.template_scales = parse_scales(str(args.template_scales))
         return run_calibration(args, config) if args.calibrate else run_flow(args, config)
     except (ValueError, FileNotFoundError) as exc:

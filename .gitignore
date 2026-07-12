@@ -13,16 +13,4 @@ logs/**/*.mov
 logs/debug/
 !logs/.gitkeep
 records/
-
-config/regions.json
-config/settings.json
-config/cooking_swordfish.json
-config/fishing.json
-config/mining.json
-config/firemaking.json
-config/motherlode_hotkeys.json
-config/npc_pickpocket.json
-legacy/config/*.json
-!legacy/config/*.example.json
-legacy/logs/
-legacy/visual_automation/
+config/runtime/

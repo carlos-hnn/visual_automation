@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from v2.game_states.woodcut_firemake import TemplateState, WoodcutFiremakeState
+from v2.game_states.template_state import TemplateState
+from v2.game_states.woodcut_firemake import WoodcutFiremakeState
 
 
 class GemCuttingState(WoodcutFiremakeState):

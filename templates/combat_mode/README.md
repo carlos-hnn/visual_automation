@@ -14,11 +14,12 @@ checks the bar again before searching for another target, allowing the defeated
 NPC's red outline time to disappear.
 
 The same loop monitors health and prayer every five seconds. Health has first
-priority, prayer second, and selecting another target third. Fish templates
-come from `templates/health_fish`; potion templates come from
-`templates/prayer_potions`. After a live consumable click, the pointer is parked
-outside the inventory so RuneLite's hover preview does not distort the next
-resource reading.
+priority, prayer second, and selecting another target third. Food detection can
+use either `food_detection_mode: "green_marker"` to click inventory-tagged food
+or `food_detection_mode: "template"` to match fish templates from
+`templates/health_fish`; potion templates come from `templates/prayer_potions`.
+After a live consumable click, the pointer is parked outside the inventory so
+RuneLite's hover preview does not distort the next resource reading.
 
 The monitors can be toggled independently with `health_monitor_enabled` and
 `prayer_monitor_enabled` in the config, or with `--health-monitor`,

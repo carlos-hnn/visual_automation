@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PYTHON = ROOT / ".venv" / "bin" / "python"
+PYTHON = ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 RUNTIME_CONFIG_DIR = ROOT / "config" / "runtime"
 
 SCRIPTS = {
@@ -26,6 +26,7 @@ SCRIPTS = {
     "woodcut_firemake": ("Woodcut + Firemake", "scripts/woodcut_firemake.py", "config/woodcut_firemake.example.json"),
     "gem_cutting": ("Gem Cutting", "scripts/gem_cutting.py", "config/gem_cutting.example.json"),
     "steel_cannonball": ("Steel Cannonball", "scripts/steel_cannonball.py", "config/steel_cannonball.example.json"),
+    "fletching_logs": ("Fletching Logs", "scripts/fletching_logs.py", "config/fletching_logs.example.json"),
 }
 
 
@@ -69,7 +70,7 @@ class ProcessManager:
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            start_new_session=True,
+            start_new_session=os.name != "nt",
             env=environment,
         )
         with self.lock:
@@ -96,10 +97,16 @@ class ProcessManager:
             return
         self.add_log("Stopping automation...", "system")
         try:
-            os.killpg(process.pid, signal.SIGINT)
+            if os.name == "nt":
+                process.terminate()
+            else:
+                os.killpg(process.pid, signal.SIGINT)
             process.wait(timeout=2.5)
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGTERM)
+            if os.name == "nt":
+                process.kill()
+            else:
+                os.killpg(process.pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
 
@@ -153,7 +160,7 @@ let state=null, selected=null, lastLog=0;
 const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path,options={}){const r=await fetch(path,{headers:{'Content-Type':'application/json'},...options});const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j}
 function renderScripts(){const n=document.getElementById('scripts');n.innerHTML='';for(const s of state.scripts){const b=document.createElement('button');b.className='script'+(s.id===selected?' selected':'');b.innerHTML=`${esc(s.label)}<small>${esc(s.id)}</small>`;b.onclick=()=>{selected=s.id;renderScripts();renderFields()};n.appendChild(b)}}
-function renderFields(){const s=state.scripts.find(x=>x.id===selected);document.getElementById('title').textContent=s.label;const box=document.getElementById('fields');box.innerHTML='';for(const [key,value] of Object.entries(s.config)){const d=document.createElement('div');const nested=typeof value==='object'&&value!==null;d.className='field'+(nested?' wide':'');const l=document.createElement('label');l.textContent=key;d.appendChild(l);let el;if(key==='mouse_backend'){el=document.createElement('select');for(const option of ['standard','quartz']){const o=document.createElement('option');o.value=option;o.textContent=option==='standard'?'Standard — moves cursor':'Quartz — experimental background click';o.selected=value===option;el.appendChild(o)}}else if(typeof value==='boolean'){el=document.createElement('input');el.type='checkbox';el.checked=value}else if(nested){el=document.createElement('textarea');el.value=JSON.stringify(value,null,2)}else{el=document.createElement('input');el.type=typeof value==='number'?'number':'text';if(typeof value==='number')el.step='any';el.value=value}el.dataset.key=key;el.dataset.type=Array.isArray(value)?'array':typeof value;d.appendChild(el);box.appendChild(d)}updateButtons()}
+function renderFields(){const s=state.scripts.find(x=>x.id===selected);document.getElementById('title').textContent=s.label;const box=document.getElementById('fields');box.innerHTML='';for(const [key,value] of Object.entries(s.config)){const d=document.createElement('div');const nested=typeof value==='object'&&value!==null;d.className='field'+(nested?' wide':'');const l=document.createElement('label');l.textContent=key;d.appendChild(l);let el;if(key==='mouse_backend'){el=document.createElement('select');for(const option of ['standard','quartz']){const o=document.createElement('option');o.value=option;o.textContent=option==='standard'?'Standard — moves cursor':'Quartz — experimental background click';o.selected=value===option;el.appendChild(o)}}else if(key==='platform'){el=document.createElement('select');for(const option of ['auto','mac','windows']){const o=document.createElement('option');o.value=option;o.textContent=option==='auto'?'Auto detect':option;o.selected=value===option;el.appendChild(o)}}else if(typeof value==='boolean'){el=document.createElement('input');el.type='checkbox';el.checked=value}else if(nested){el=document.createElement('textarea');el.value=JSON.stringify(value,null,2)}else{el=document.createElement('input');el.type=typeof value==='number'?'number':'text';if(typeof value==='number')el.step='any';el.value=value}el.dataset.key=key;el.dataset.type=Array.isArray(value)?'array':typeof value;d.appendChild(el);box.appendChild(d)}updateButtons()}
 function collect(){const out={};for(const el of document.querySelectorAll('[data-key]')){let v;if(el.dataset.type==='boolean')v=el.checked;else if(el.dataset.type==='number')v=Number(el.value);else if(el.dataset.type==='object'||el.dataset.type==='array')v=JSON.parse(el.value);else v=el.value;out[el.dataset.key]=v}return out}
 async function save(){const config=collect();await api('/api/save',{method:'POST',body:JSON.stringify({id:selected,config})});state.scripts.find(x=>x.id===selected).config=config;flash('Settings saved')}
 async function start(){const config=collect();if(config.dry_run===false){const detail=config.mouse_backend==='quartz'?'The experimental Quartz backend will send background click events. RuneLite compatibility is not yet confirmed.':'This automation will move and click the mouse.';if(!confirm('Live mode is enabled. '+detail+' Start it?'))return}await api('/api/start',{method:'POST',body:JSON.stringify({id:selected,config})});state.scripts.find(x=>x.id===selected).config=config;await refreshStatus()}
