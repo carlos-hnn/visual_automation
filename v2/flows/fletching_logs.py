@@ -8,17 +8,17 @@ from pathlib import Path
 from typing import Any
 
 import cv2
-import numpy as np
 import pyautogui
 
 from core.keyboard import KeyboardController
-from core.screen import Frame, ScreenCapture
+from core.screen import ScreenCapture
 from core.terminal import install_timestamped_print
 from core.vision import TemplateMatch
 from v2.actions import StopKeys, build_mouse, humanized_delay, match_click_coordinates
 from v2.config import load_json_config, value_from_config
 from v2.definitions import ROOT
 from v2.game_states.bank import detect_bank_status
+from v2.game_states.color_markers import best_color_marker, marker_click_point, marker_settings_from_config
 from v2.game_states.template_matching import parse_scales
 from v2.game_states.template_state import TemplateState
 from v2.game_states.woodcut_firemake import WoodcutFiremakeState
@@ -76,56 +76,6 @@ def build_templates(
     return build_template_states(TEMPLATE_NAMES, templates_dir, threshold, default_scales, config)
 
 
-def parse_hsv_triplet(value: Any, label: str) -> tuple[int, int, int]:
-    if not isinstance(value, (list, tuple)) or len(value) != 3:
-        raise ValueError(f"{label} must contain three HSV values")
-    return tuple(max(0, min(255, int(item))) for item in value)
-
-
-def cyan_mask(image: np.ndarray, hsv_min: tuple[int, int, int], hsv_max: tuple[int, int, int]) -> np.ndarray:
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    return cv2.inRange(hsv, np.array(hsv_min, np.uint8), np.array(hsv_max, np.uint8))
-
-
-def best_cyan_marker(
-    frame: Frame,
-    hsv_min: tuple[int, int, int],
-    hsv_max: tuple[int, int, int],
-    min_pixels: int,
-    min_dimension: int,
-    max_dimension: int,
-    grouping_pixels: int,
-) -> TemplateMatch | None:
-    raw_mask = cyan_mask(frame.image, hsv_min, hsv_max)
-    kernel_size = max(1, grouping_pixels * 2 + 1)
-    grouped = cv2.dilate(
-        raw_mask,
-        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)),
-        iterations=1,
-    )
-    count, labels, stats, _centroids = cv2.connectedComponentsWithStats(grouped)
-    candidates: list[TemplateMatch] = []
-    for label in range(1, count):
-        x, y, width, height, _area = (int(item) for item in stats[label])
-        pixels = int(np.count_nonzero(raw_mask[labels == label]))
-        if pixels < min_pixels:
-            continue
-        if min(width, height) < min_dimension or max(width, height) > max_dimension:
-            continue
-        candidates.append(
-            TemplateMatch(
-                x=frame.left + x,
-                y=frame.top + y,
-                width=width,
-                height=height,
-                score=float(pixels),
-            )
-        )
-    if not candidates:
-        return None
-    return max(candidates, key=lambda match: match.score)
-
-
 def click_match(mouse, template: TemplateState, match: TemplateMatch, scale: float, args, dry_run: bool) -> None:
     x, y = match_click_coordinates(match, args.click_scale, args.spot_jitter)
     x += template.click_offset[0]
@@ -149,22 +99,11 @@ def find_and_click(state, mouse, template: TemplateState, args, dry_run: bool) -
 
 
 def click_cyan_marker(screen, mouse, region: dict[str, int], label: str, args, config: dict[str, Any], dry_run: bool) -> bool:
-    hsv_min = parse_hsv_triplet(value_from_config(config, "cyan_marker_hsv_min", [70, 60, 60]), "cyan_marker_hsv_min")
-    hsv_max = parse_hsv_triplet(value_from_config(config, "cyan_marker_hsv_max", [110, 255, 255]), "cyan_marker_hsv_max")
-    frame = screen.capture(region)
-    match = best_cyan_marker(
-        frame,
-        hsv_min,
-        hsv_max,
-        int(value_from_config(config, "cyan_marker_min_pixels", 120)),
-        int(value_from_config(config, "cyan_marker_min_dimension", 8)),
-        int(value_from_config(config, "cyan_marker_max_dimension", 140)),
-        int(value_from_config(config, "cyan_marker_grouping_pixels", 2)),
-    )
+    match = best_color_marker(screen.capture(region), marker_settings_from_config(config))
     if match is None:
         print(f"{label}: no cyan marker found")
         return False
-    x, y = match_click_coordinates(match, args.click_scale, args.spot_jitter)
+    x, y = marker_click_point(match, args.click_scale, args.spot_jitter)
     if dry_run:
         print(f"{label}: cyan score={match.score:.0f}, would click=({x},{y}), rect=({match.x},{match.y},{match.width},{match.height})")
         return True

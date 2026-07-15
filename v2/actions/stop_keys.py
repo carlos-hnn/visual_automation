@@ -22,7 +22,12 @@ class StopKeys:
         normalized = self._normalize_key(key)
         if normalized:
             self._pressed.add(normalized)
-        if normalized == "esc" or {"cmd", "shift", "q"}.issubset(self._pressed):
+        if (
+            normalized == "esc"
+            or {"cmd", "shift", "q"}.issubset(self._pressed)
+            or {"cmd", "c"}.issubset(self._pressed)
+            or {"ctrl", "c"}.issubset(self._pressed)
+        ):
             self.stop_requested = True
 
     def _on_release(self, key: keyboard.Key | keyboard.KeyCode | None) -> None:
@@ -35,9 +40,10 @@ class StopKeys:
             return "cmd"
         if key in {keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r}:
             return "shift"
+        if key in {keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r}:
+            return "ctrl"
         if key == keyboard.Key.esc:
             return "esc"
         if isinstance(key, keyboard.KeyCode) and key.char:
             return key.char.lower()
         return None
-

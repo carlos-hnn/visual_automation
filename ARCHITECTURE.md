@@ -2,7 +2,7 @@
 
 This project is organized around active automation flows:
 `template_click_sequence`, `woodcut_firemake`, `gem_cutting`, `steel_cannonball`,
-`combat_mode`, and `fletching_logs`.
+`combat_mode`, `fletching_logs`, and `powermining`.
 
 ## Active Layout
 
@@ -14,6 +14,7 @@ scripts/
   gem_cutting.py                  # bank/withdraw/cut loop entrypoint
   steel_cannonball.py             # bank/furnace loop entrypoint
   fletching_logs.py               # bank/knife/log fletching loop entrypoint
+  powermining.py                  # cyan-marker rock mining and inventory dropping
 
 v2/                              # main automation package; name kept for import stability
   definitions.py                  # shared paths and defaults
@@ -28,6 +29,7 @@ v2/                              # main automation package; name kept for import
     bank.py                       # shared bank-open status
     combat.py                     # shared health, prayer, and combat activity states
     inventory.py                  # shared inventory-full/empty-slot status
+    color_markers.py              # shared HSV marker detection for cyan/green tags
     template_state.py             # shared TemplateState and matcher state
     template_matching.py          # captured game state: template search result, scores, scales
     template_sequence.py          # route/template step definitions
@@ -37,12 +39,14 @@ v2/                              # main automation package; name kept for import
     woodcut_firemake.py           # orchestration for woodcutting and firemaking
     gem_cutting.py                # orchestration for banking and cutting gems
     fletching_logs.py             # orchestration for banking and fletching logs
+    powermining.py                # orchestration for marker-based powermining
 
 templates/
   template_click_sequence/        # templates owned by this script
   woodcut_firemake/               # templates owned by this script
   combat_mode/                    # combat docs and target flow notes
   fletching_logs/                 # fletching templates
+  powermining/                    # marker-only powermining notes
   gem_cutting/                    # gem cutting templates
   health_fish/                    # health/food templates
   prayer_potions/                 # prayer potion templates
@@ -55,6 +59,7 @@ config/
   gem_cutting.example.json
   steel_cannonball.example.json
   fletching_logs.example.json
+  powermining.example.json
 
 ```
 

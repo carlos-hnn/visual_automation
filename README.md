@@ -29,6 +29,9 @@ enabled until the target application has been tested deliberately.
 .venv/bin/python scripts/woodcut_firemake.py --dry-run
 .venv/bin/python scripts/combat_mode.py --dry-run
 .venv/bin/python scripts/fletching_logs.py --dry-run
+.venv/bin/python scripts/powermining.py --dry-run
+.venv/bin/python scripts/motherlode_mine.py --calibrate
+.venv/bin/python scripts/motherlode_mine.py --dry-run
 ```
 
 Using the example config:
@@ -53,13 +56,18 @@ scripts/combat_mode.py
 scripts/gem_cutting.py
 scripts/steel_cannonball.py
 scripts/fletching_logs.py
+scripts/powermining.py
+scripts/motherlode_mine.py
 v2/                              # main automation package; name kept for import stability
 templates/template_click_sequence/
 templates/woodcut_firemake/
 templates/fletching_logs/
+templates/powermining/
 config/template_click_sequence.example.json
 config/woodcut_firemake.example.json
 config/fletching_logs.example.json
+config/powermining.example.json
+config/motherlode_mine.example.json
 ```
 
 More detail: [ARCHITECTURE.md](ARCHITECTURE.md).

@@ -27,6 +27,8 @@ SCRIPTS = {
     "gem_cutting": ("Gem Cutting", "scripts/gem_cutting.py", "config/gem_cutting.example.json"),
     "steel_cannonball": ("Steel Cannonball", "scripts/steel_cannonball.py", "config/steel_cannonball.example.json"),
     "fletching_logs": ("Fletching Logs", "scripts/fletching_logs.py", "config/fletching_logs.example.json"),
+    "powermining": ("Powermining", "scripts/powermining.py", "config/powermining.example.json"),
+    "motherlode_mine": ("Motherlode Mine", "scripts/motherlode_mine.py", "config/motherlode_mine.example.json"),
 }
 
 
