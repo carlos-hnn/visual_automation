@@ -27,11 +27,16 @@ enabled until the target application has been tested deliberately.
 ```bash
 .venv/bin/python scripts/template_click_sequence.py --dry-run
 .venv/bin/python scripts/woodcut_firemake.py --dry-run
+.venv/bin/python scripts/woodcutting.py --calibrate
+.venv/bin/python scripts/woodcutting.py --dry-run
+.venv/bin/python scripts/wc-fossil.py --show-mouse-position
+.venv/bin/python scripts/wc-fossil.py --dry-run
 .venv/bin/python scripts/combat_mode.py --dry-run
 .venv/bin/python scripts/fletching_logs.py --dry-run
 .venv/bin/python scripts/powermining.py --dry-run
 .venv/bin/python scripts/motherlode_mine.py --calibrate
 .venv/bin/python scripts/motherlode_mine.py --dry-run
+.venv/bin/python scripts/cleaning_herbs.py --bank-item-name "Grimy kwuarm" --dry-run
 ```
 
 Using the example config:
@@ -43,6 +48,20 @@ Using the example config:
 
 Remove `--dry-run` or pass `--no-dry-run` only when you intentionally want live mouse clicks.
 
+## Global safety
+
+Every active script uses the same safety supervisor:
+
+- `Esc` stops the automation through a global keyboard listener, even when the
+  terminal or VS Code is not focused. On macOS, the Python/Terminal host must
+  retain Accessibility permission.
+- Repeated unsuccessful visual searches arm a 30-second watchdog. A successful
+  target/state detection clears it; if no visual progress occurs before the
+  deadline, the script requests a stop and prints the last missing target.
+- Long, expected production waits do not arm the watchdog by themselves.
+
+`Cmd+Shift+Q`, `Cmd+C`, and `Ctrl+C` remain supported as additional stop keys.
+
 All active scripts accept `--platform auto|mac|windows`. `auto` detects the
 current OS. If `templates/<script>/windows/` exists, Windows runs use that
 template set; otherwise the script falls back to the base template folder.
@@ -52,19 +71,26 @@ template set; otherwise the script falls back to the base template folder.
 ```text
 scripts/template_click_sequence.py
 scripts/woodcut_firemake.py
+scripts/woodcutting.py
+scripts/wc-fossil.py
 scripts/combat_mode.py
 scripts/gem_cutting.py
 scripts/steel_cannonball.py
 scripts/fletching_logs.py
 scripts/powermining.py
 scripts/motherlode_mine.py
+scripts/cleaning_herbs.py
 v2/                              # main automation package; name kept for import stability
 templates/template_click_sequence/
 templates/woodcut_firemake/
+templates/woodcutting/
+templates/wc-fossil/
 templates/fletching_logs/
 templates/powermining/
 config/template_click_sequence.example.json
 config/woodcut_firemake.example.json
+config/woodcutting.example.json
+config/wc-fossil.example.json
 config/fletching_logs.example.json
 config/powermining.example.json
 config/motherlode_mine.example.json

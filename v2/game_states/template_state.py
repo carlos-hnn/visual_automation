@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.screen import ScreenCapture
+from core.safety import report_failure, report_progress
 from core.vision import TemplateMatch
 from v2.actions import StopKeys
 from v2.game_states.template_matching import best_template_match, wait_for_template_match
@@ -44,6 +45,10 @@ class TemplateMatcherState:
             stop_keys=self.stop_keys,
             region=template.region,
         )
+        if result.match is None:
+            report_failure(f"template:{template.name}")
+        else:
+            report_progress(f"template:{template.name}")
         return result.match, result.best_seen.score, result.scale
 
     def exists(self, template: TemplateState, timeout: float) -> bool:
@@ -58,4 +63,8 @@ class TemplateMatcherState:
             template_scales=list(template.scales),
             region=template.region,
         )
+        if match.score >= template.threshold:
+            report_progress(f"template:{template.name}")
+        else:
+            report_failure(f"template:{template.name}")
         return match, match.score, scale

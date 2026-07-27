@@ -12,6 +12,7 @@ import numpy as np
 import pyautogui
 
 from core.screen import Frame, ScreenCapture
+from core.safety import report_failure, report_progress
 from core.terminal import install_timestamped_print
 from core.vision import TemplateMatch
 from v2.actions import StopKeys, build_mouse, humanized_delay
@@ -202,8 +203,10 @@ def wait_for_template(
         if score > best_score:
             best_match, best_score, best_scale = match, score, scale
         if match is not None and score >= threshold:
+            report_progress(f"motherlode:{template_path.name}")
             return match, score, scale
         if time.monotonic() >= deadline:
+            report_failure(f"motherlode:{template_path.name}")
             return None, best_score, best_scale
         sleep_until = min(deadline, time.monotonic() + max(0.05, poll_seconds))
         while time.monotonic() < sleep_until:

@@ -4,6 +4,7 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import threading
 import time
 import webbrowser
@@ -15,10 +16,12 @@ from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PYTHON = ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+PYTHON = Path(sys.executable)
 RUNTIME_CONFIG_DIR = ROOT / "config" / "runtime"
 
 SCRIPTS = {
+    "wc_fossil": ("WC Fossil", "scripts/wc-fossil.py", "config/wc-fossil.example.json"),
+    "woodcutting": ("Woodcutting", "scripts/woodcutting.py", "config/woodcutting.example.json"),
     "combat_mode": ("Combat Mode", "scripts/combat_mode.py", "config/combat_mode.example.json"),
     "template_click_sequence": (
         "Template Click Sequence", "scripts/template_click_sequence.py", "config/template_click_sequence.example.json"
@@ -29,6 +32,9 @@ SCRIPTS = {
     "fletching_logs": ("Fletching Logs", "scripts/fletching_logs.py", "config/fletching_logs.example.json"),
     "powermining": ("Powermining", "scripts/powermining.py", "config/powermining.example.json"),
     "motherlode_mine": ("Motherlode Mine", "scripts/motherlode_mine.py", "config/motherlode_mine.example.json"),
+    "herblore": ("Herblore", "scripts/herblore.py", "config/herblore.example.json"),
+    "potion_fill": ("Potion Fill", "scripts/potion_fill.py", "config/potion_fill.example.json"),
+    "cleaning_herbs": ("Cleaning Herbs", "scripts/cleaning_herbs.py", "config/cleaning_herbs.example.json"),
 }
 
 

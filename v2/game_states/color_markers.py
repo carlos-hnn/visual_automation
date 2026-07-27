@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 
 from core.screen import Frame, ScreenCapture
+from core.safety import report_failure, report_progress
 from core.vision import TemplateMatch
 from v2.actions import match_click_coordinates
 from v2.config import value_from_config
@@ -43,7 +44,19 @@ def marker_settings_from_config(config: dict[str, Any], prefix: str = "cyan_mark
 
 def color_mask(image: np.ndarray, settings: MarkerSettings) -> np.ndarray:
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    return cv2.inRange(hsv, np.array(settings.hsv_min, np.uint8), np.array(settings.hsv_max, np.uint8))
+    if settings.hsv_min[0] <= settings.hsv_max[0]:
+        return cv2.inRange(hsv, np.array(settings.hsv_min, np.uint8), np.array(settings.hsv_max, np.uint8))
+    high_red = cv2.inRange(
+        hsv,
+        np.array(settings.hsv_min, np.uint8),
+        np.array((179, settings.hsv_max[1], settings.hsv_max[2]), np.uint8),
+    )
+    low_red = cv2.inRange(
+        hsv,
+        np.array((0, settings.hsv_min[1], settings.hsv_min[2]), np.uint8),
+        np.array(settings.hsv_max, np.uint8),
+    )
+    return cv2.bitwise_or(high_red, low_red)
 
 
 def find_color_markers(frame: Frame, settings: MarkerSettings) -> list[TemplateMatch]:
@@ -75,7 +88,12 @@ def find_color_markers(frame: Frame, settings: MarkerSettings) -> list[TemplateM
                 score=float(pixels),
             )
         )
-    return sorted(candidates, key=lambda match: match.score, reverse=True)
+    markers = sorted(candidates, key=lambda match: match.score, reverse=True)
+    if markers:
+        report_progress("color-marker")
+    else:
+        report_failure("color-marker")
+    return markers
 
 
 def best_color_marker(frame: Frame, settings: MarkerSettings) -> TemplateMatch | None:

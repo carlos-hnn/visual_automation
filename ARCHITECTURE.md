@@ -1,8 +1,8 @@
 # Visual Automation Architecture
 
 This project is organized around active automation flows:
-`template_click_sequence`, `woodcut_firemake`, `gem_cutting`, `steel_cannonball`,
-`combat_mode`, `fletching_logs`, and `powermining`.
+`template_click_sequence`, `woodcutting`, `woodcut_firemake`, `gem_cutting`, `steel_cannonball`,
+`combat_mode`, `fletching_logs`, `powermining`, `herblore`, `potion_fill`, and `cleaning_herbs`.
 
 ## Active Layout
 
@@ -10,20 +10,26 @@ This project is organized around active automation flows:
 scripts/
   template_click_sequence.py      # thin CLI entrypoint
   woodcut_firemake.py             # thin CLI entrypoint
+  woodcutting.py                  # cyan-marker tree cutting and log dropping
+  wc-fossil.py                    # Fossil Island bank route entrypoint
   combat_mode.py                  # combat, health, prayer, and target flow
   gem_cutting.py                  # bank/withdraw/cut loop entrypoint
   steel_cannonball.py             # bank/furnace loop entrypoint
   fletching_logs.py               # bank/knife/log fletching loop entrypoint
   powermining.py                  # cyan-marker rock mining and inventory dropping
+  herblore.py                     # ranarr/vial mixing and static bank withdrawal loop
+  potion_fill.py                  # green-tag potion pairing and static bank refill loop
+  cleaning_herbs.py               # green-tag grimy herb cleaning and calibrated bank refill loop
 
 v2/                              # main automation package; name kept for import stability
+  ../core/safety.py              # active supervisor bridge for shared visual detectors
   definitions.py                  # shared paths and defaults
   config.py                       # JSON config loading helpers
   platforming.py                  # OS/template platform selection
   template_config.py              # shared template regions, offsets, scales, window lookup
   actions/
     mouse.py                      # repeatable actions: Bezier mouse, jitter-aware click setup
-    stop_keys.py                  # Esc and Cmd+Shift+Q stop listener
+    stop_keys.py                  # global stop keys and 30-second missing-target watchdog
     timing.py                     # delay humanization
   game_states/
     bank.py                       # shared bank-open status
@@ -37,6 +43,8 @@ v2/                              # main automation package; name kept for import
   flows/
     template_click_sequence.py    # orchestration for the active route runner
     woodcut_firemake.py           # orchestration for woodcutting and firemaking
+    woodcutting.py                # status/inventory loop and nearest cyan tree selection
+    wc_fossil.py                  # hidden-passage travel and banking route
     gem_cutting.py                # orchestration for banking and cutting gems
     fletching_logs.py             # orchestration for banking and fletching logs
     powermining.py                # orchestration for marker-based powermining
@@ -44,6 +52,8 @@ v2/                              # main automation package; name kept for import
 templates/
   template_click_sequence/        # templates owned by this script
   woodcut_firemake/               # templates owned by this script
+  woodcutting/                    # status and empty-slot templates
+  wc-fossil/                      # route notes; shared templates are reused
   combat_mode/                    # combat docs and target flow notes
   fletching_logs/                 # fletching templates
   powermining/                    # marker-only powermining notes
@@ -55,6 +65,8 @@ templates/
 config/
   template_click_sequence.example.json
   woodcut_firemake.example.json
+  woodcutting.example.json
+  wc-fossil.example.json
   combat_mode.example.json
   gem_cutting.example.json
   steel_cannonball.example.json

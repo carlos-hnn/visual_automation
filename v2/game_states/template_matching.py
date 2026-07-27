@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 
 from core.screen import Frame, ScreenCapture
+from core.safety import report_failure, report_progress
 from core.vision import TemplateMatch
 from v2.actions.stop_keys import StopKeys
 
@@ -103,6 +104,7 @@ def wait_for_template_match(
             best_seen = match
             best_seen_scale = scale
         if match.score >= threshold:
+            report_progress(f"template:{template_path.name}")
             return TemplateSearchResult(match=match, best_seen=match, scale=scale)
         time.sleep(max(0.01, poll_seconds))
     if best_seen is None:
@@ -114,5 +116,7 @@ def wait_for_template_match(
             region=region,
         )
     if best_seen.score >= threshold:
+        report_progress(f"template:{template_path.name}")
         return TemplateSearchResult(match=best_seen, best_seen=best_seen, scale=best_seen_scale)
+    report_failure(f"template:{template_path.name}")
     return TemplateSearchResult(match=None, best_seen=best_seen, scale=best_seen_scale)

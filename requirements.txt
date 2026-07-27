@@ -3,4 +3,5 @@ opencv-python>=4.9.0
 numpy>=1.26.0
 PyAutoGUI>=0.9.54
 pynput>=1.7.6
+rapidocr_onnxruntime>=1.3,<2
 PyGetWindow>=0.0.9; platform_system == "Windows"

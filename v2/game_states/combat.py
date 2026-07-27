@@ -39,7 +39,7 @@ def health_percent(frame: Frame, minimum_row_coverage: float = 0.18) -> float:
     return max(0.0, min(100.0, (mask.shape[0] - int(rows.min())) * 100.0 / mask.shape[0]))
 
 
-def prayer_percent(frame: Frame, minimum_row_coverage: float = 0.18) -> float:
+def prayer_percent(frame: Frame, minimum_row_coverage: float = 0.75) -> float:
     hsv = cv2.cvtColor(frame.image, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, np.array((45, 100, 80), np.uint8), np.array((100, 255, 255), np.uint8))
     rows = np.flatnonzero(np.count_nonzero(mask, axis=1) / max(1, mask.shape[1]) >= minimum_row_coverage)
