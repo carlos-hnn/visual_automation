@@ -6,7 +6,6 @@ import signal
 import subprocess
 import sys
 import threading
-import time
 import webbrowser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -14,13 +13,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON = Path(sys.executable)
 RUNTIME_CONFIG_DIR = ROOT / "config" / "runtime"
 
 SCRIPTS = {
-    "wc_fossil": ("WC Fossil", "scripts/wc-fossil.py", "config/wc-fossil.example.json"),
+    "wc_fossil": ("WC Fossil", "scripts/wc_fossil.py", "config/wc_fossil.example.json"),
     "woodcutting": ("Woodcutting", "scripts/woodcutting.py", "config/woodcutting.example.json"),
     "combat_mode": ("Combat Mode", "scripts/combat_mode.py", "config/combat_mode.example.json"),
     "template_click_sequence": (
@@ -146,40 +144,11 @@ def save_config(script_id: str, config: dict[str, Any]) -> None:
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
 
-HTML = r"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Visual Automation</title>
-<style>
-:root{--bg:#101315;--panel:#191e21;--panel2:#22292d;--text:#edf2f4;--muted:#93a1a8;--line:#344047;--green:#4bd37b;--red:#ff625f;--gold:#f0b84b;--blue:#63a9ff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;height:100vh;overflow:hidden}
-header{height:64px;padding:14px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:#14181b}
-h1{font-size:20px;margin:0}.subtitle{color:var(--muted);font-size:12px}.status{padding:7px 12px;border-radius:18px;background:var(--panel2);color:var(--muted)}.status.running{color:var(--green)}
-main{display:grid;grid-template-columns:240px minmax(390px,1fr) minmax(340px,.8fr);height:calc(100vh - 64px)}
-nav{border-right:1px solid var(--line);padding:14px;overflow:auto}.script{width:100%;text-align:left;border:1px solid transparent;background:transparent;color:var(--text);padding:12px;border-radius:9px;margin-bottom:6px;cursor:pointer}.script:hover{background:var(--panel)}.script.selected{background:var(--panel2);border-color:#46545c}.script small{display:block;color:var(--muted);margin-top:3px}
-.settings{padding:20px;overflow:auto;border-right:1px solid var(--line)}h2{margin:0 0 5px;font-size:19px}.hint{color:var(--muted);margin-bottom:18px}.fields{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:12px}.field{background:var(--panel);border:1px solid var(--line);padding:10px;border-radius:8px}.field.wide{grid-column:1/-1}.field label{display:block;color:#c7d0d4;font-size:12px;margin-bottom:7px;word-break:break-word}input,textarea,select{width:100%;border:1px solid #445159;background:#0f1315;color:var(--text);border-radius:6px;padding:8px;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}input[type=checkbox]{width:auto;transform:scale(1.25);margin:6px}textarea{min-height:84px;resize:vertical}
-.actions{position:sticky;bottom:-20px;background:linear-gradient(transparent,#101315 22%);padding:28px 0 4px;display:flex;gap:9px}button.action{border:0;border-radius:8px;padding:10px 16px;font-weight:650;cursor:pointer}.start{background:var(--green);color:#092313}.stop{background:var(--red);color:#2d0808}.save{background:var(--blue);color:#071c33}.action:disabled{opacity:.4;cursor:not-allowed}
-.console{display:flex;flex-direction:column;min-width:0}.console-head{padding:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.logs{margin:0;padding:14px;overflow:auto;flex:1;background:#0b0e10;color:#cbd6db;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}.log-system{color:var(--gold)}
-@media(max-width:1000px){body{height:auto;overflow:auto}main{grid-template-columns:190px minmax(0,1fr);height:auto;min-height:calc(100vh - 64px)}.settings{border-right:0}.console{display:flex;grid-column:1/-1;height:380px;border-top:1px solid var(--line)}.fields{grid-template-columns:1fr}}
-</style></head>
-<body><header><div><h1>Visual Automation</h1><div class="subtitle">Local control panel · one automation at a time</div></div><div id="status" class="status">Idle</div></header>
-<main><nav id="scripts"></nav><section class="settings"><h2 id="title"></h2><div class="hint">Settings are saved under config/runtime. Example configs remain unchanged.</div><div id="fields" class="fields"></div><div class="actions"><button id="start" class="action start">Start</button><button id="stop" class="action stop">Stop</button><button id="save" class="action save">Save settings</button></div></section><section class="console"><div class="console-head"><strong>Live output</strong><span class="subtitle">Esc or Cmd+Shift+Q also stops automation</span></div><pre id="logs" class="logs"></pre></section></main>
-<script>
-let state=null, selected=null, lastLog=0;
-const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function api(path,options={}){const r=await fetch(path,{headers:{'Content-Type':'application/json'},...options});const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j}
-function renderScripts(){const n=document.getElementById('scripts');n.innerHTML='';for(const s of state.scripts){const b=document.createElement('button');b.className='script'+(s.id===selected?' selected':'');b.innerHTML=`${esc(s.label)}<small>${esc(s.id)}</small>`;b.onclick=()=>{selected=s.id;renderScripts();renderFields()};n.appendChild(b)}}
-function renderFields(){const s=state.scripts.find(x=>x.id===selected);document.getElementById('title').textContent=s.label;const box=document.getElementById('fields');box.innerHTML='';for(const [key,value] of Object.entries(s.config)){const d=document.createElement('div');const nested=typeof value==='object'&&value!==null;d.className='field'+(nested?' wide':'');const l=document.createElement('label');l.textContent=key;d.appendChild(l);let el;if(key==='mouse_backend'){el=document.createElement('select');for(const option of ['standard','quartz']){const o=document.createElement('option');o.value=option;o.textContent=option==='standard'?'Standard — moves cursor':'Quartz — experimental background click';o.selected=value===option;el.appendChild(o)}}else if(key==='platform'){el=document.createElement('select');for(const option of ['auto','mac','windows']){const o=document.createElement('option');o.value=option;o.textContent=option==='auto'?'Auto detect':option;o.selected=value===option;el.appendChild(o)}}else if(typeof value==='boolean'){el=document.createElement('input');el.type='checkbox';el.checked=value}else if(nested){el=document.createElement('textarea');el.value=JSON.stringify(value,null,2)}else{el=document.createElement('input');el.type=typeof value==='number'?'number':'text';if(typeof value==='number')el.step='any';el.value=value}el.dataset.key=key;el.dataset.type=Array.isArray(value)?'array':typeof value;d.appendChild(el);box.appendChild(d)}updateButtons()}
-function collect(){const out={};for(const el of document.querySelectorAll('[data-key]')){let v;if(el.dataset.type==='boolean')v=el.checked;else if(el.dataset.type==='number')v=Number(el.value);else if(el.dataset.type==='object'||el.dataset.type==='array')v=JSON.parse(el.value);else v=el.value;out[el.dataset.key]=v}return out}
-async function save(){const config=collect();await api('/api/save',{method:'POST',body:JSON.stringify({id:selected,config})});state.scripts.find(x=>x.id===selected).config=config;flash('Settings saved')}
-async function start(){const config=collect();if(config.dry_run===false){const detail=config.mouse_backend==='quartz'?'The experimental Quartz backend will send background click events. RuneLite compatibility is not yet confirmed.':'This automation will move and click the mouse.';if(!confirm('Live mode is enabled. '+detail+' Start it?'))return}await api('/api/start',{method:'POST',body:JSON.stringify({id:selected,config})});state.scripts.find(x=>x.id===selected).config=config;await refreshStatus()}
-async function stop(){await api('/api/stop',{method:'POST',body:'{}'});setTimeout(refreshStatus,250)}
-function flash(t){const e=document.getElementById('status');e.textContent=t;setTimeout(refreshStatus,900)}
-function updateButtons(){const running=state?.process?.running;document.getElementById('start').disabled=running;document.getElementById('stop').disabled=!running}
-async function refreshStatus(){const p=await api('/api/status');state.process=p;const e=document.getElementById('status');if(p.running){const s=state.scripts.find(x=>x.id===p.script_id);e.textContent='Running · '+(s?s.label:p.script_id);e.className='status running'}else{e.textContent='Idle';e.className='status'}updateButtons()}
-async function pollLogs(){try{const data=await api('/api/logs?after='+lastLog);const e=document.getElementById('logs');for(const l of data.logs){lastLog=l.id;const span=document.createElement('span');span.className=l.kind==='system'?'log-system':'';span.textContent=l.text+'\n';e.appendChild(span)}if(data.logs.length)e.scrollTop=e.scrollHeight}catch{}setTimeout(pollLogs,700)}
-async function init(){state=await api('/api/state');selected=state.scripts[0].id;renderScripts();renderFields();refreshStatus();pollLogs()}
-document.getElementById('start').onclick=()=>start().catch(e=>alert(e.message));document.getElementById('stop').onclick=()=>stop().catch(e=>alert(e.message));document.getElementById('save').onclick=()=>save().catch(e=>alert('Invalid setting: '+e.message));init();
-</script></body></html>"""
+HTML_PATH = ROOT / "web" / "control_panel.html"
+STATIC_FILES = {
+    "/static/control_panel.css": (ROOT / "web" / "control_panel.css", "text/css; charset=utf-8"),
+    "/static/control_panel.js": (ROOT / "web" / "control_panel.js", "text/javascript; charset=utf-8"),
+}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -203,8 +172,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path in STATIC_FILES:
+            path, content_type = STATIC_FILES[parsed.path]
+            body = path.read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path == "/":
-            body = HTML.encode("utf-8")
+            body = HTML_PATH.read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))

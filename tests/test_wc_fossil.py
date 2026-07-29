@@ -4,9 +4,9 @@ import unittest
 
 import numpy as np
 
-from core.screen import Frame
-from core.vision import TemplateMatch
-from v2.flows.wc_fossil import configured_point, exclude_red_filled_targets, red_fill_fraction
+from visual_automation.core.screen import Frame
+from visual_automation.core.vision import TemplateMatch
+from visual_automation.flows.wc_fossil import configured_point, exclude_red_filled_targets, red_fill_fraction
 
 
 class WcFossilTests(unittest.TestCase):

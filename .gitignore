@@ -11,6 +11,13 @@ logs/**/*.log
 logs/**/*.png
 logs/**/*.mov
 logs/debug/
+debug/
 !logs/.gitkeep
 records/
 config/runtime/
+
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/

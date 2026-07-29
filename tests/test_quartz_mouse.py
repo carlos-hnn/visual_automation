@@ -4,8 +4,8 @@ import os
 import unittest
 from unittest.mock import patch
 
-from core.mouse import MouseConfig, QuartzMouseController
-from v2.actions.mouse import build_mouse
+from visual_automation.actions.mouse import build_mouse
+from visual_automation.core.mouse import MouseConfig, QuartzMouseController
 
 
 class FakeQuartz:

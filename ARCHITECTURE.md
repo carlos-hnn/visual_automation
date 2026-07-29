@@ -11,7 +11,7 @@ scripts/
   template_click_sequence.py      # thin CLI entrypoint
   woodcut_firemake.py             # thin CLI entrypoint
   woodcutting.py                  # cyan-marker tree cutting and log dropping
-  wc-fossil.py                    # Fossil Island bank route entrypoint
+  wc_fossil.py                    # Fossil Island bank route entrypoint
   combat_mode.py                  # combat, health, prayer, and target flow
   gem_cutting.py                  # bank/withdraw/cut loop entrypoint
   steel_cannonball.py             # bank/furnace loop entrypoint
@@ -21,8 +21,8 @@ scripts/
   potion_fill.py                  # green-tag potion pairing and static bank refill loop
   cleaning_herbs.py               # green-tag grimy herb cleaning and calibrated bank refill loop
 
-v2/                              # main automation package; name kept for import stability
-  ../core/safety.py              # active supervisor bridge for shared visual detectors
+src/visual_automation/              # installable application package
+  core/                         # low-level capture, input, vision, and safety
   definitions.py                  # shared paths and defaults
   config.py                       # JSON config loading helpers
   platforming.py                  # OS/template platform selection
@@ -53,7 +53,7 @@ templates/
   template_click_sequence/        # templates owned by this script
   woodcut_firemake/               # templates owned by this script
   woodcutting/                    # status and empty-slot templates
-  wc-fossil/                      # route notes; shared templates are reused
+  wc_fossil/                      # route notes; shared templates are reused
   combat_mode/                    # combat docs and target flow notes
   fletching_logs/                 # fletching templates
   powermining/                    # marker-only powermining notes
@@ -66,7 +66,7 @@ config/
   template_click_sequence.example.json
   woodcut_firemake.example.json
   woodcutting.example.json
-  wc-fossil.example.json
+  wc_fossil.example.json
   combat_mode.example.json
   gem_cutting.example.json
   steel_cannonball.example.json
@@ -115,6 +115,10 @@ Generated files that should stay out of source control:
 - `logs/debug/` screenshots;
 - one-off calibration evidence unless it is intentionally promoted into a
   template folder.
+
+Project metadata lives in `pyproject.toml`; runtime dependencies are mirrored
+in `requirements.txt` for simple environment setup, and development-only tools
+are listed in `requirements-dev.txt`.
 
 ## Running
 

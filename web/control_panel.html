@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Visual Automation</title>
+<link rel="stylesheet" href="/static/control_panel.css"></head>
+<body><header><div><h1>Visual Automation</h1><div class="subtitle">Local control panel · one automation at a time</div></div><div id="status" class="status">Idle</div></header>
+<main><nav id="scripts"></nav><section class="settings"><h2 id="title"></h2><div class="hint">Settings are saved under config/runtime. Example configs remain unchanged.</div><div id="fields" class="fields"></div><div class="actions"><button id="start" class="action start">Start</button><button id="stop" class="action stop">Stop</button><button id="save" class="action save">Save settings</button></div></section><section class="console"><div class="console-head"><strong>Live output</strong><span class="subtitle">Esc or Cmd+Shift+Q also stops automation</span></div><pre id="logs" class="logs"></pre></section></main>
+<script src="/static/control_panel.js"></script></body></html>

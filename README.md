@@ -3,6 +3,20 @@
 Active automation is available through a local control panel or individual
 command-line wrappers.
 
+## Setup
+
+Python 3.11 or 3.12 is required (the OCR dependency does not support Python
+3.13 yet). A virtual environment may live at `.venv/`
+for convenience, but it is local machine state and is intentionally ignored by
+Git. It may also live elsewhere (the Finder launcher checks
+`~/Library/Application Support/visual_automation/venv` first).
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python -m pytest
+```
+
 ## Control panel
 
 Double-click `Automation Control Panel.command` in Finder. It opens a local
@@ -29,8 +43,8 @@ enabled until the target application has been tested deliberately.
 .venv/bin/python scripts/woodcut_firemake.py --dry-run
 .venv/bin/python scripts/woodcutting.py --calibrate
 .venv/bin/python scripts/woodcutting.py --dry-run
-.venv/bin/python scripts/wc-fossil.py --show-mouse-position
-.venv/bin/python scripts/wc-fossil.py --dry-run
+.venv/bin/python scripts/wc_fossil.py --show-mouse-position
+.venv/bin/python scripts/wc_fossil.py --dry-run
 .venv/bin/python scripts/combat_mode.py --dry-run
 .venv/bin/python scripts/fletching_logs.py --dry-run
 .venv/bin/python scripts/powermining.py --dry-run
@@ -72,7 +86,7 @@ template set; otherwise the script falls back to the base template folder.
 scripts/template_click_sequence.py
 scripts/woodcut_firemake.py
 scripts/woodcutting.py
-scripts/wc-fossil.py
+scripts/wc_fossil.py
 scripts/combat_mode.py
 scripts/gem_cutting.py
 scripts/steel_cannonball.py
@@ -80,17 +94,17 @@ scripts/fletching_logs.py
 scripts/powermining.py
 scripts/motherlode_mine.py
 scripts/cleaning_herbs.py
-v2/                              # main automation package; name kept for import stability
+src/visual_automation/              # installable application package
 templates/template_click_sequence/
 templates/woodcut_firemake/
 templates/woodcutting/
-templates/wc-fossil/
+templates/wc_fossil/
 templates/fletching_logs/
 templates/powermining/
 config/template_click_sequence.example.json
 config/woodcut_firemake.example.json
 config/woodcutting.example.json
-config/wc-fossil.example.json
+config/wc_fossil.example.json
 config/fletching_logs.example.json
 config/powermining.example.json
 config/motherlode_mine.example.json

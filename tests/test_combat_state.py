@@ -5,9 +5,9 @@ import unittest
 import cv2
 import numpy as np
 
-from core.screen import Frame
-from v2.flows.combat_mode import detect_red_targets
-from v2.game_states.combat import prayer_percent
+from visual_automation.core.screen import Frame
+from visual_automation.flows.combat_mode import detect_red_targets
+from visual_automation.game_states.combat import prayer_percent
 
 
 class PrayerPercentTests(unittest.TestCase):

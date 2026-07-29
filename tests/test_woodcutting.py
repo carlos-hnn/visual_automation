@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from core.vision import TemplateMatch
-from v2.flows.woodcutting import nearest_to_center, region_center
+from visual_automation.core.vision import TemplateMatch
+from visual_automation.flows.woodcutting import nearest_to_center, region_center
 
 
 class WoodcuttingTests(unittest.TestCase):
