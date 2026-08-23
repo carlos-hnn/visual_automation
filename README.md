@@ -5,8 +5,7 @@ command-line wrappers.
 
 ## Setup
 
-Python 3.11 or 3.12 is required (the OCR dependency does not support Python
-3.13 yet). A virtual environment may live at `.venv/`
+Python 3.11 or newer is supported. A virtual environment may live at `.venv/`
 for convenience, but it is local machine state and is intentionally ignored by
 Git. It may also live elsewhere (the Finder launcher checks
 `~/Library/Application Support/visual_automation/venv` first).
@@ -23,13 +22,17 @@ Double-click `Automation Control Panel.command` in Finder. It opens a local
 browser app where you can:
 
 - select any active automation;
-- edit every JSON parameter, including nested regions and thresholds;
+- edit the operational parameters directly;
+- expand **Advanced settings** only when calibrating regions, colors, templates,
+  thresholds, jitter, or integration details;
 - save settings without changing the example configs;
 - start and stop one automation at a time;
 - view live script output;
 - confirm explicitly before starting a configuration with `dry_run: false`.
 
 Saved app settings live under `config/runtime/`, which is generated locally.
+Common defaults are inherited from `config/shared_defaults.json`; runtime files
+store only values that differ from those defaults.
 
 Each automation exposes a `mouse_backend` setting. `standard` uses the normal
 visible cursor. `quartz` is an experimental macOS background-click backend that
@@ -100,7 +103,10 @@ scripts/powermining.py
 scripts/motherlode_mine.py
 scripts/mine_bank.py
 scripts/cleaning_herbs.py
+scripts/herblore.py
+scripts/potion_fill.py
 src/visual_automation/              # installable application package
+templates/shared/                   # canonical assets reused by flows
 templates/template_click_sequence/
 templates/woodcut_firemake/
 templates/woodcutting/
@@ -115,6 +121,9 @@ config/fletching_logs.example.json
 config/powermining.example.json
 config/motherlode_mine.example.json
 config/mine_bank.example.json
+config/herblore.example.json
+config/potion_fill.example.json
+config/shared_defaults.json
 ```
 
 More detail: [ARCHITECTURE.md](ARCHITECTURE.md).

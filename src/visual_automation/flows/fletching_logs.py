@@ -24,8 +24,7 @@ from visual_automation.game_states.color_markers import (
     marker_settings_from_config,
 )
 from visual_automation.game_states.template_matching import parse_scales
-from visual_automation.game_states.template_state import TemplateState
-from visual_automation.game_states.woodcut_firemake import WoodcutFiremakeState
+from visual_automation.game_states.template_state import TemplateMatcherState, TemplateState
 from visual_automation.platforming import add_platform_argument, platform_template_dir, resolve_platform
 from visual_automation.template_config import build_template_states, resolve_regions
 
@@ -159,7 +158,7 @@ def run_flow(args, config: dict[str, Any]) -> int:
     stop_keys.start()
     try:
         with ScreenCapture(monitor=args.monitor) as screen:
-            state = WoodcutFiremakeState(screen, args.monitor, args.poll_seconds, stop_keys)
+            state = TemplateMatcherState(screen, args.monitor, args.poll_seconds, stop_keys)
             clicks = TemplateActions(state, mouse, args, args.dry_run)
             bank = BankActions(templates, clicks)
             completed = 0
@@ -220,7 +219,7 @@ def run_calibration(args, config: dict[str, Any]) -> int:
         print(f"Monitor {args.monitor}: left={frame.left}, top={frame.top}, width={frame.width}, height={frame.height}")
         if window:
             print(f"RuneLite window: left={window['left']}, top={window['top']}, width={window['width']}, height={window['height']}")
-        state = WoodcutFiremakeState(screen, args.monitor, args.poll_seconds, stop_keys)
+        state = TemplateMatcherState(screen, args.monitor, args.poll_seconds, stop_keys)
         for template in templates.values():
             if not template.path.exists():
                 print(f"{template.name}: missing at {template.path}")

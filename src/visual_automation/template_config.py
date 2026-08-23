@@ -3,14 +3,22 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from visual_automation.config import value_from_config
+from visual_automation.config import PROJECT_ROOT, value_from_config
 from visual_automation.game_states.template_matching import parse_scales
 from visual_automation.game_states.template_state import TemplateState
 from visual_automation.platforming import detect_platform
 
+SHARED_TEMPLATE_PATHS = {
+    "deposit_all": PROJECT_ROOT / "templates" / "shared" / "bank" / "deposit_all.png",
+    "bank_close": PROJECT_ROOT / "templates" / "shared" / "bank" / "bank_close.png",
+}
+
 
 def template_path(templates_dir: Path, name: str) -> Path:
-    return templates_dir / f"{name}.png"
+    local = templates_dir / f"{name}.png"
+    if local.exists():
+        return local
+    return SHARED_TEMPLATE_PATHS.get(name, local)
 
 
 def threshold_for(config: dict, name: str, default: float) -> float:

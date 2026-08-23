@@ -4,7 +4,7 @@ These Retina-resolution templates are matched at scale `0.5` by
 `config/gem_cutting.example.json`.
 
 - `bank.png`: closed bank booth in the calibrated camera view.
-- `deposit_all.png`: bank deposit-inventory control.
+- shared `templates/shared/bank/deposit_all.png`: bank deposit-inventory control.
 - `bank_close.png`: bank window close control. Closing the bank is required
   before chisel-on-gem can work.
 - `gem_blue.png`, `gem_red.png`, `gem_green.png`: uncut gem variants.

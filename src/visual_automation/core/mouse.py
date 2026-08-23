@@ -7,8 +7,7 @@ from math import hypot
 
 import pyautogui
 
-from visual_automation.core.regions import Region
-from visual_automation.core.vision import TemplateMatch, Vision
+from visual_automation.core.vision import TemplateMatch
 
 
 @dataclass(frozen=True)
@@ -96,20 +95,6 @@ class MouseController:
         x, y = self._point_inside_match(match)
         self.click(x, y, button=button)
         return x, y
-
-    def click_template(
-        self,
-        vision: Vision,
-        template_path: str,
-        region: Region | dict[str, int] | None = None,
-        threshold: float = 0.85,
-        button: str = "left",
-    ) -> bool:
-        match = vision.find_template(template_path, region=region, threshold=threshold)
-        if match is None:
-            return False
-        self.click_match(match, button=button)
-        return True
 
     def _point_inside_match(self, match: TemplateMatch) -> tuple[int, int]:
         center_x, center_y = match.center

@@ -227,18 +227,6 @@ def wait_clicked_marker_gone(screen, region, settings, clicked, label: str, args
     return False
 
 
-def click_travel_point(mouse, point: tuple[int, int], label: str, args) -> None:
-    x, y = point
-    if args.dry_run:
-        print(f"{label}: would click configured point=({x},{y})")
-        return
-    jitter = max(0, args.spot_jitter)
-    x += random.randint(-jitter, jitter) if jitter else 0
-    y += random.randint(-jitter, jitter) if jitter else 0
-    mouse.click(x, y)
-    print(f"{label}: clicked configured point=({x},{y})")
-
-
 def bank_logs(screen, state, mouse, regions, templates, blue_settings, args, stop_keys) -> bool:
     bank = detect_bank_status(state, templates["deposit_all"], 0.0)
     if not bank.is_open and not wait_and_click_stable_color_target(

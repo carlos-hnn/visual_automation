@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from visual_automation.config import config_overrides, deep_merge
+from visual_automation.template_config import SHARED_TEMPLATE_PATHS, template_path
 
 
 def test_deep_merge_preserves_nested_defaults() -> None:
@@ -21,3 +24,13 @@ def test_config_overrides_removes_only_shared_values() -> None:
         "nested": {"interval": 0.2},
         "loops": 4,
     }
+
+
+def test_template_path_falls_back_to_shared_asset(tmp_path: Path) -> None:
+    assert template_path(tmp_path, "deposit_all") == SHARED_TEMPLATE_PATHS["deposit_all"]
+
+
+def test_template_path_prefers_flow_specific_asset(tmp_path: Path) -> None:
+    local = tmp_path / "bank_close.png"
+    local.touch()
+    assert template_path(tmp_path, "bank_close") == local

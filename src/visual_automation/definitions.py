@@ -8,14 +8,6 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @dataclass(frozen=True)
-class RuntimePaths:
-    config_dir: Path = ROOT / "config"
-    logs_dir: Path = ROOT / "logs"
-    debug_dir: Path = ROOT / "logs" / "debug"
-    templates_dir: Path = ROOT / "templates"
-
-
-@dataclass(frozen=True)
 class TemplateSequenceDefaults:
     templates_dir: Path = ROOT / "templates" / "template_click_sequence"
     order: tuple[str, ...] = ("1", "2", "3", "4", "5", "6")

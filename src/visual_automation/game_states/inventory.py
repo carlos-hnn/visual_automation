@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Protocol
 
 import cv2
-import numpy as np
 
 from visual_automation.core.screen import ScreenCapture
 from visual_automation.core.vision import TemplateMatch
@@ -40,42 +39,6 @@ class InventorySlotStatus:
     @property
     def is_empty(self) -> bool:
         return self.empty_slots >= self.empty_required
-
-
-def detect_inventory_slot_status(
-    screen: ScreenCapture,
-    empty_slot_template: TemplateState,
-    empty_required: int,
-) -> InventorySlotStatus:
-    """Count distinct empty slots, supporting the template's configured scales."""
-    source = cv2.imread(str(empty_slot_template.path), cv2.IMREAD_COLOR)
-    if source is None:
-        raise FileNotFoundError(f"Template image not found or unreadable: {empty_slot_template.path}")
-    frame = screen.capture(empty_slot_template.region)
-    candidates: list[tuple[float, int, int, int, int]] = []
-    for scale in empty_slot_template.scales:
-        width = max(1, round(source.shape[1] * scale))
-        height = max(1, round(source.shape[0] * scale))
-        if width > frame.width or height > frame.height:
-            continue
-        resized = cv2.resize(source, (width, height), interpolation=cv2.INTER_AREA)
-        result = cv2.matchTemplate(frame.image, resized, cv2.TM_CCOEFF_NORMED)
-        ys, xs = np.where(result >= empty_slot_template.threshold)
-        candidates.extend(
-            (float(result[y, x]), frame.left + int(x), frame.top + int(y), width, height) for y, x in zip(ys, xs)
-        )
-
-    kept: list[tuple[float, int, int, int, int]] = []
-    for candidate in sorted(candidates, reverse=True):
-        _, x, y, width, height = candidate
-        center = (x + width // 2, y + height // 2)
-        if all(
-            float(np.hypot(center[0] - (other[1] + other[3] // 2), center[1] - (other[2] + other[4] // 2)))
-            > min(width, height) / 2
-            for other in kept
-        ):
-            kept.append(candidate)
-    return InventorySlotStatus(empty_slots=len(kept), empty_required=max(1, empty_required))
 
 
 def detect_inventory_grid_status(

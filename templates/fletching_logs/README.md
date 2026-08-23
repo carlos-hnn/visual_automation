@@ -2,7 +2,7 @@
 
 This flow fletches one inventory of maple logs into bows.
 
-- `deposit_all.png`: bank deposit-inventory control.
+- shared `templates/shared/bank/deposit_all.png`: bank deposit-inventory control.
 - `bank_maple_log.png`: maple log item inside the bank.
 - `bank_close.png`: bank window close control.
 - `knife.png`: knife in inventory.

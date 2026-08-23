@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from visual_automation.game_states.template_state import TemplateState
-from visual_automation.game_states.woodcut_firemake import WoodcutFiremakeState
+from visual_automation.game_states.template_state import TemplateMatcherState, TemplateState
 
 
-class GemCuttingState(WoodcutFiremakeState):
+class GemCuttingState(TemplateMatcherState):
     """Template-backed observations used by the gem-cutting flow."""
 
     def first_present(

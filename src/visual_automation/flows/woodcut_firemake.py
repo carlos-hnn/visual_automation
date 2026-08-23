@@ -17,8 +17,7 @@ from visual_automation.core.terminal import install_timestamped_print
 from visual_automation.definitions import ROOT
 from visual_automation.game_states.inventory import detect_inventory_status
 from visual_automation.game_states.template_matching import parse_scales
-from visual_automation.game_states.template_state import TemplateState
-from visual_automation.game_states.woodcut_firemake import WoodcutFiremakeState
+from visual_automation.game_states.template_state import TemplateMatcherState, TemplateState
 from visual_automation.platforming import add_platform_argument, platform_template_dir, resolve_platform
 from visual_automation.template_config import build_template_states, resolve_regions
 
@@ -90,7 +89,7 @@ def available_tree_templates(templates: dict[str, TemplateState]) -> list[Templa
 
 
 def click_template(
-    state: WoodcutFiremakeState,
+    state: TemplateMatcherState,
     mouse,
     template: TemplateState,
     click_timeout: float,
@@ -148,7 +147,7 @@ def click_matched_template(
 
 
 def click_first_template(
-    state: WoodcutFiremakeState,
+    state: TemplateMatcherState,
     mouse,
     candidates: list[TemplateState],
     click_timeout: float,
@@ -286,7 +285,7 @@ def run_flow(
     stop_keys.start()
     try:
         with ScreenCapture(monitor=monitor) as screen:
-            state = WoodcutFiremakeState(
+            state = TemplateMatcherState(
                 screen=screen,
                 monitor=monitor,
                 poll_seconds=poll_seconds,
@@ -410,7 +409,7 @@ def run_calibration(
                 f"RuneLite window: left={window['left']}, top={window['top']}, "
                 f"width={window['width']}, height={window['height']}"
             )
-        state = WoodcutFiremakeState(
+        state = TemplateMatcherState(
             screen=screen,
             monitor=monitor,
             poll_seconds=poll_seconds,

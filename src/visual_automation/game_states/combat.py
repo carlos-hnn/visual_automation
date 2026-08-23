@@ -23,12 +23,6 @@ class CombatActivityStatus:
     threshold: float
 
 
-def combat_green_fraction(frame: Frame) -> float:
-    hsv = cv2.cvtColor(frame.image, cv2.COLOR_BGR2HSV)
-    green = cv2.inRange(hsv, np.array((35, 110, 70), np.uint8), np.array((90, 255, 255), np.uint8))
-    return float(np.count_nonzero(green)) / max(1, green.size)
-
-
 def health_percent(frame: Frame, minimum_row_coverage: float = 0.18) -> float:
     hsv = cv2.cvtColor(frame.image, cv2.COLOR_BGR2HSV)
     low_red = cv2.inRange(hsv, np.array((0, 120, 95), np.uint8), np.array((12, 255, 255), np.uint8))

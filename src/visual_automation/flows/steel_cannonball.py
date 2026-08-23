@@ -16,8 +16,7 @@ from visual_automation.core.screen import ScreenCapture
 from visual_automation.core.terminal import install_timestamped_print
 from visual_automation.definitions import ROOT
 from visual_automation.game_states.template_matching import parse_scales
-from visual_automation.game_states.template_state import TemplateState
-from visual_automation.game_states.woodcut_firemake import WoodcutFiremakeState
+from visual_automation.game_states.template_state import TemplateMatcherState, TemplateState
 from visual_automation.platforming import add_platform_argument, platform_template_dir, resolve_platform
 from visual_automation.template_config import build_template_states
 
@@ -135,7 +134,7 @@ def run_flow(args, config: dict[str, Any]) -> int:
     stop_keys.start()
     try:
         with ScreenCapture(monitor=args.monitor) as screen:
-            state = WoodcutFiremakeState(screen, args.monitor, args.poll_seconds, stop_keys)
+            state = TemplateMatcherState(screen, args.monitor, args.poll_seconds, stop_keys)
             clicks = TemplateActions(state, mouse, args, args.dry_run)
             bank = BankActions(templates, clicks)
             completed = 0
@@ -196,7 +195,7 @@ def run_calibration(args, config: dict[str, Any]) -> int:
     templates = build_templates(templates_dir, args.threshold, args.template_scales, config)
     stop_keys = StopKeys()
     with ScreenCapture(monitor=args.monitor) as screen:
-        state = WoodcutFiremakeState(screen, args.monitor, args.poll_seconds, stop_keys)
+        state = TemplateMatcherState(screen, args.monitor, args.poll_seconds, stop_keys)
         for template in templates.values():
             match, score, scale = state.find(template, 0.5)
             print(
