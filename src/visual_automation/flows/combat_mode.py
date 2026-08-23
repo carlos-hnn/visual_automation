@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import math
 import random
+import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +14,7 @@ import numpy as np
 
 from visual_automation.actions import StopKeys, build_mouse, match_click_coordinates
 from visual_automation.config import load_json_config, value_from_config
+from visual_automation.core.ocr import recognized_text
 from visual_automation.core.safety import report_failure, report_progress
 from visual_automation.core.screen import Frame, ScreenCapture
 from visual_automation.core.terminal import install_timestamped_print
@@ -45,6 +47,34 @@ class RedTarget:
 class TaggedConsumable:
     label: str
     match: TemplateMatch
+
+
+@dataclass(frozen=True)
+class TaskCounterReading:
+    controlled_visible: bool
+    remaining: int | None
+    text: str
+
+
+def parse_task_counter_text(text: str) -> TaskCounterReading:
+    controlled_visible = bool(re.search(r"controlled", text, re.IGNORECASE))
+    match = re.search(r"(\d+)\D*controlled", text, re.IGNORECASE)
+    return TaskCounterReading(
+        controlled_visible=controlled_visible,
+        remaining=int(match.group(1)) if match else None,
+        text=text,
+    )
+
+
+def read_task_counter(frame: Frame, ocr: Any, scale: int = 4) -> TaskCounterReading:
+    enlarged = cv2.resize(
+        frame.image,
+        None,
+        fx=max(1, scale),
+        fy=max(1, scale),
+        interpolation=cv2.INTER_CUBIC,
+    )
+    return parse_task_counter_text(recognized_text(ocr(enlarged)))
 
 
 def parse_region(value: Any, label: str) -> dict[str, int]:
@@ -137,10 +167,19 @@ def best_green_marked_inventory_item(
     label: str = "green inventory marker",
 ) -> TaggedConsumable | None:
     frame = screen.capture(inventory_region)
-    return best_marked_inventory_item(
-        frame, green_marker_mask(frame.image, hsv_min, hsv_max), min_green_pixels,
+    raw_mask = green_marker_mask(frame.image, hsv_min, hsv_max)
+    candidate = best_marked_inventory_item(
+        frame, raw_mask, min_green_pixels,
         min_dimension, max_dimension, grouping_pixels, label,
     )
+    # Adjacent potion doses can be only a couple of pixels apart. Dilation may
+    # merge two inventory slots into an oversized component that is rejected.
+    if candidate is None and grouping_pixels > 0:
+        candidate = best_marked_inventory_item(
+            frame, raw_mask, min_green_pixels,
+            min_dimension, max_dimension, 0, label,
+        )
+    return candidate
 
 
 def best_red_marked_inventory_item(
@@ -212,6 +251,23 @@ def detect_red_targets(
     return targets, raw_mask
 
 
+def reacquire_target(
+    previous: RedTarget,
+    candidates: list[RedTarget],
+    max_distance: float,
+) -> RedTarget | None:
+    """Associate a freshly detected target with the one selected before mouse movement."""
+    if not candidates:
+        return None
+    previous_x, previous_y = previous.center
+    candidate = min(
+        candidates,
+        key=lambda item: math.hypot(item.center[0] - previous_x, item.center[1] - previous_y),
+    )
+    drift = math.hypot(candidate.center[0] - previous_x, candidate.center[1] - previous_y)
+    return candidate if drift <= max_distance else None
+
+
 def save_debug_view(
     frame: Frame,
     targets: list[RedTarget],
@@ -238,6 +294,8 @@ def run(
     *, monitor: int, window_title: str, combat_region_relative: dict[str, int],
     target_region_relative: dict[str, int], ignored_regions_relative: list[dict[str, int]],
     health_monitor_enabled: bool, prayer_monitor_enabled: bool,
+    task_counter_enabled: bool, task_counter_region_relative: dict[str, int],
+    task_counter_check_seconds: float, task_counter_stop_at: int,
     health_region_relative: dict[str, int], inventory_region_relative: dict[str, int],
     food_marker_min_red_pixels: int, food_marker_min_dimension: int,
     food_marker_max_dimension: int, food_marker_grouping_pixels: int,
@@ -249,11 +307,13 @@ def run(
     potion_marker_max_dimension: int, potion_marker_grouping_pixels: int,
     prayer_threshold_percent: float, required_low_prayer_readings: int,
     drink_cooldown_seconds: float,
-    anchor_relative: tuple[int, int], combat_green_threshold: float,
+    anchor_relative: tuple[int, int], combat_entry_green_threshold: float,
+    combat_sustain_min_green_pixels: int,
     required_out_of_combat_readings: int, check_seconds: float,
     post_combat_wait_seconds: float,
     attack_confirm_timeout: float, min_red_pixels: int, min_target_dimension: int,
     max_target_dimension: int, grouping_pixels: int, target_anchor_exclusion_radius: float,
+    target_reacquire_max_distance: float,
     countdown: float,
     spot_jitter: int, dry_run: bool, calibrate: bool,
 ) -> int:
@@ -266,6 +326,7 @@ def run(
     health_region = absolute_region(window, health_region_relative)
     prayer_region = absolute_region(window, prayer_region_relative)
     inventory_region = absolute_region(window, inventory_region_relative)
+    task_counter_region = absolute_region(window, task_counter_region_relative)
     anchor = (window["left"] + anchor_relative[0], window["top"] + anchor_relative[1])
     print(f"RuneLite window={window}; character_anchor={anchor}")
 
@@ -278,7 +339,15 @@ def run(
     last_eat = float("-inf")
     last_drink = float("-inf")
     next_health_check = 0.0
+    next_task_counter_check = 0.0
     combat_was_active = False
+    task_counter_ocr = None
+    if task_counter_enabled:
+        try:
+            from rapidocr import RapidOCR
+        except ImportError as exc:
+            raise ValueError("Task counter OCR requires rapidocr and onnxruntime") from exc
+        task_counter_ocr = RapidOCR()
     print(
         f"{'DRY RUN' if dry_run else 'LIVE'}: combat mode checks health, prayer, combat, and targets "
         f"every {health_check_seconds:g}s"
@@ -292,6 +361,25 @@ def run(
             while not stop_keys.stop_requested:
                 now = time.monotonic()
                 consumed_this_tick = False
+                if task_counter_enabled and now >= next_task_counter_check:
+                    reading = read_task_counter(
+                        screen.capture(task_counter_region), task_counter_ocr,
+                    )
+                    next_task_counter_check = now + task_counter_check_seconds
+                    if not reading.controlled_visible:
+                        print(
+                            f"task counter disappeared (ocr={reading.text!r}); stopping combat mode"
+                        )
+                        break
+                    if reading.remaining is None:
+                        print(f"task counter unreadable (ocr={reading.text!r}); will retry")
+                    else:
+                        print(
+                            f"task counter={reading.remaining}; stop_at={task_counter_stop_at}"
+                        )
+                        if reading.remaining <= task_counter_stop_at:
+                            print("task counter reached stop threshold; stopping combat mode")
+                            break
                 if now >= next_health_check and health_monitor_enabled:
                     health_status = detect_health_status(screen.capture(health_region), health_threshold_percent)
                     low_health_readings = low_health_readings + 1 if health_status.is_low else 0
@@ -386,7 +474,13 @@ def run(
                 if now >= next_health_check:
                     next_health_check = now + health_check_seconds
 
-                combat_status = detect_combat_activity(screen.capture(combat_region), combat_green_threshold)
+                sustain_combat = combat_was_active or time.monotonic() < attack_pending_until
+                combat_status = detect_combat_activity(
+                    screen.capture(combat_region),
+                    combat_entry_green_threshold,
+                    sustain=sustain_combat,
+                    sustain_min_green_pixels=combat_sustain_min_green_pixels,
+                )
                 green_fraction = combat_status.green_fraction
                 in_combat = combat_status.in_combat
                 if in_combat:
@@ -394,7 +488,10 @@ def run(
                     combat_was_active = True
                     out_of_combat_readings = 0
                     attack_pending_until = 0.0
-                    print(f"combat=yes green={green_fraction:.3f}")
+                    print(
+                        f"combat=yes green_pixels={combat_status.green_pixels} "
+                        f"green={green_fraction:.4f} sustain={sustain_combat}"
+                    )
                 else:
                     if combat_was_active:
                         print(
@@ -406,11 +503,19 @@ def run(
                             time.sleep(min(0.10, deadline - time.monotonic()))
                         if stop_keys.stop_requested:
                             break
-                        combat_status = detect_combat_activity(screen.capture(combat_region), combat_green_threshold)
+                        combat_status = detect_combat_activity(
+                            screen.capture(combat_region),
+                            combat_entry_green_threshold,
+                            sustain=True,
+                            sustain_min_green_pixels=combat_sustain_min_green_pixels,
+                        )
                         green_fraction = combat_status.green_fraction
                         in_combat = combat_status.in_combat
                         if in_combat:
-                            print(f"combat resumed during wait green={green_fraction:.3f}")
+                            print(
+                                f"combat resumed during wait green_pixels={combat_status.green_pixels} "
+                                f"green={green_fraction:.4f}"
+                            )
                             out_of_combat_readings = 0
                             attack_pending_until = 0.0
                             continue
@@ -419,7 +524,8 @@ def run(
                     now = time.monotonic()
                     pending = now < attack_pending_until
                     print(
-                        f"combat=no green={green_fraction:.3f} "
+                        f"combat=no green_pixels={combat_status.green_pixels} "
+                        f"green={green_fraction:.4f} "
                         f"clear={out_of_combat_readings}/{required_out_of_combat_readings} pending={pending}"
                     )
                     if out_of_combat_readings >= required_out_of_combat_readings and not pending and not consumed_this_tick:
@@ -444,10 +550,34 @@ def run(
                                     f"distance={target.distance:.1f} red_pixels={target.red_pixels} candidates={len(targets)}"
                                 )
                             else:
-                                mouse.click(click_x, click_y)
+                                # The humanized cursor movement takes long enough for a walking
+                                # target to leave its original coordinates. Move close first, then
+                                # capture again and make only a zero-duration correction to click.
+                                mouse.move_to(click_x, click_y)
+                                refreshed_frame = screen.capture(target_region)
+                                refreshed_targets, _refreshed_mask = detect_red_targets(
+                                    refreshed_frame, target_region_relative, ignored_regions_relative, anchor,
+                                    min_red_pixels, min_target_dimension, max_target_dimension, grouping_pixels,
+                                    target_anchor_exclusion_radius,
+                                )
+                                refreshed = reacquire_target(
+                                    target, refreshed_targets, target_reacquire_max_distance,
+                                )
+                                if refreshed is None:
+                                    print("target moved too far or disappeared before click; retrying")
+                                    report_failure("combat:slayer-target")
+                                    attack_pending_until = 0.0
+                                    out_of_combat_readings = 0
+                                    continue
+                                refreshed_x, refreshed_y = refreshed.center
+                                refreshed_x += random.randint(-spot_jitter, spot_jitter) if spot_jitter else 0
+                                refreshed_y += random.randint(-spot_jitter, spot_jitter) if spot_jitter else 0
+                                mouse.click_immediately(refreshed_x, refreshed_y)
+                                drift = math.hypot(refreshed_x - click_x, refreshed_y - click_y)
                                 print(
-                                    f"attacked nearest target at=({click_x},{click_y}) "
-                                    f"distance={target.distance:.1f} candidates={len(targets)}"
+                                    f"attacked refreshed target at=({refreshed_x},{refreshed_y}) "
+                                    f"drift={drift:.1f}px distance={refreshed.distance:.1f} "
+                                    f"candidates={len(refreshed_targets)}"
                                 )
                             attack_pending_until = time.monotonic() + attack_confirm_timeout
                             out_of_combat_readings = 0
@@ -509,6 +639,15 @@ def main() -> int:
         health_region = parse_region(value_from_config(config, "health_region", {}), "health_region")
         prayer_region = parse_region(value_from_config(config, "prayer_region", {}), "prayer_region")
         inventory_region = parse_region(value_from_config(config, "inventory_region", {}), "inventory_region")
+        task_counter_enabled = bool(value_from_config(config, "task_counter_enabled", True))
+        task_counter_region = parse_region(
+            value_from_config(
+                config,
+                "task_counter_region",
+                {"left": 130, "top": 842, "width": 155, "height": 42},
+            ),
+            "task_counter_region",
+        )
         raw_ignored = value_from_config(config, "ignored_regions", [])
         if not isinstance(raw_ignored, list):
             raise ValueError("ignored_regions must be a list")
@@ -524,6 +663,12 @@ def main() -> int:
             ignored_regions_relative=ignored_regions,
             health_monitor_enabled=bool(args.health_monitor),
             prayer_monitor_enabled=bool(args.prayer_monitor),
+            task_counter_enabled=task_counter_enabled,
+            task_counter_region_relative=task_counter_region,
+            task_counter_check_seconds=max(
+                0.1, float(value_from_config(config, "task_counter_check_seconds", 10.0)),
+            ),
+            task_counter_stop_at=max(0, int(value_from_config(config, "task_counter_stop_at", 3))),
             health_region_relative=health_region,
             inventory_region_relative=inventory_region,
             food_marker_min_red_pixels=max(1, int(value_from_config(config, "food_marker_min_red_pixels", 120))),
@@ -545,7 +690,14 @@ def main() -> int:
             required_low_prayer_readings=max(1, int(value_from_config(config, "required_low_prayer_readings", 1))),
             drink_cooldown_seconds=max(0.0, float(value_from_config(config, "drink_cooldown_seconds", 8.0))),
             anchor_relative=(int(anchor_value["x"]), int(anchor_value["y"])),
-            combat_green_threshold=max(0.0, min(1.0, float(value_from_config(config, "combat_green_threshold", 0.02)))),
+            combat_entry_green_threshold=max(0.0, min(1.0, float(value_from_config(
+                config,
+                "combat_entry_green_threshold",
+                value_from_config(config, "combat_bar_threshold", value_from_config(config, "combat_green_threshold", 0.02)),
+            )))),
+            combat_sustain_min_green_pixels=max(
+                1, int(value_from_config(config, "combat_sustain_min_green_pixels", 3)),
+            ),
             required_out_of_combat_readings=max(1, int(value_from_config(config, "required_out_of_combat_readings", 2))),
             check_seconds=max(0.1, float(value_from_config(config, "check_seconds", 5.0))),
             post_combat_wait_seconds=max(0.0, float(value_from_config(config, "post_combat_wait_seconds", 1.0))),
@@ -555,6 +707,7 @@ def main() -> int:
             max_target_dimension=max(1, int(value_from_config(config, "max_target_dimension", 140))),
             grouping_pixels=max(0, int(value_from_config(config, "grouping_pixels", 8))),
             target_anchor_exclusion_radius=max(0.0, float(value_from_config(config, "target_anchor_exclusion_radius", 70.0))),
+            target_reacquire_max_distance=max(1.0, float(value_from_config(config, "target_reacquire_max_distance", 120.0))),
             countdown=max(0.0, args.countdown),
             spot_jitter=max(0, int(value_from_config(config, "spot_jitter", 3))),
             dry_run=bool(args.dry_run), calibrate=bool(args.calibrate),

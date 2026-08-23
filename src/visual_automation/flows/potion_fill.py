@@ -11,7 +11,7 @@ from typing import Any
 
 import pyautogui
 
-from visual_automation.actions import StopKeys, build_mouse, humanized_delay, match_click_coordinates, wait_ticks
+from visual_automation.actions import StopKeys, build_mouse, match_click_coordinates, wait_ticks
 from visual_automation.config import load_json_config, value_from_config
 from visual_automation.core.ocr import recognized_text
 from visual_automation.core.screen import ScreenCapture

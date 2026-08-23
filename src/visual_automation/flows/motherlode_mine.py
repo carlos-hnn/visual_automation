@@ -234,7 +234,19 @@ def inventory_is_full(screen: ScreenCapture, regions: dict[str, dict[str, int]],
         markers = capture_color_markers(screen, regions["inventory"], settings)
         full_count = int(value_from_config(config, "inventory_full_marker_count", 28))
         return len(markers) >= full_count, f"inventory markers={len(markers)}/{full_count}"
-    raise ValueError("inventory_full_mode must be slot_occupancy, empty_slot_template, marker_count, or always_false")
+    if mode == "last_slot_marker":
+        settings = marker_settings_from_config(config, "inventory_marker")
+        markers = capture_color_markers(screen, regions["inventory"], settings)
+        region = regions["inventory"]
+        rows = max(1, int(value_from_config(config, "inventory_slots_rows", 7)))
+        cols = max(1, int(value_from_config(config, "inventory_slots_cols", 4)))
+        last_left = int(region["left"]) + int(region["width"]) * (cols - 1) / cols
+        last_top = int(region["top"]) + int(region["height"]) * (rows - 1) / rows
+        occupied = any(marker.center[0] >= last_left and marker.center[1] >= last_top for marker in markers)
+        return occupied, f"last slot marker={'present' if occupied else 'absent'}; markers={len(markers)}"
+    raise ValueError(
+        "inventory_full_mode must be slot_occupancy, empty_slot_template, marker_count, last_slot_marker, or always_false"
+    )
 
 
 def inventory_slot_occupancy(frame: Frame, config: dict[str, Any]) -> tuple[int, int, str]:

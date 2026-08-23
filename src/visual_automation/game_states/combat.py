@@ -17,6 +17,7 @@ class PercentBarStatus:
 
 @dataclass(frozen=True)
 class CombatActivityStatus:
+    green_pixels: int
     green_fraction: float
     in_combat: bool
     threshold: float
@@ -58,6 +59,26 @@ def detect_prayer_status(frame: Frame, threshold_percent: float) -> PercentBarSt
     return PercentBarStatus(percent=percent, is_low=percent < threshold_percent, threshold_percent=threshold_percent)
 
 
-def detect_combat_activity(frame: Frame, threshold: float) -> CombatActivityStatus:
-    fraction = combat_green_fraction(frame)
-    return CombatActivityStatus(green_fraction=fraction, in_combat=fraction >= threshold, threshold=threshold)
+def detect_combat_activity(
+    frame: Frame,
+    threshold: float,
+    *,
+    sustain: bool = False,
+    sustain_min_green_pixels: int = 3,
+) -> CombatActivityStatus:
+    """Detect combat, using a lower green threshold only after an attack has started."""
+    hsv = cv2.cvtColor(frame.image, cv2.COLOR_BGR2HSV)
+    green = cv2.inRange(hsv, np.array((35, 110, 70), np.uint8), np.array((90, 255, 255), np.uint8))
+    green_pixels = int(np.count_nonzero(green))
+    green_fraction = green_pixels / max(1, green.size)
+    in_combat = (
+        green_pixels >= max(1, sustain_min_green_pixels)
+        if sustain
+        else green_fraction >= threshold
+    )
+    return CombatActivityStatus(
+        green_pixels=green_pixels,
+        green_fraction=green_fraction,
+        in_combat=in_combat,
+        threshold=threshold,
+    )

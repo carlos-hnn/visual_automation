@@ -19,7 +19,7 @@ scripts/
   powermining.py                  # cyan-marker rock mining and inventory dropping
   herblore.py                     # ranarr/vial mixing and static bank withdrawal loop
   potion_fill.py                  # green-tag potion pairing and static bank refill loop
-  cleaning_herbs.py               # green-tag grimy herb cleaning and calibrated bank refill loop
+  cleaning_herbs.py               # fixed-grid herb cleaning with visually confirmed bank states
 
 src/visual_automation/              # installable application package
   core/                         # low-level capture, input, vision, and safety

@@ -50,7 +50,11 @@ enabled until the target application has been tested deliberately.
 .venv/bin/python scripts/powermining.py --dry-run
 .venv/bin/python scripts/motherlode_mine.py --calibrate
 .venv/bin/python scripts/motherlode_mine.py --dry-run
-.venv/bin/python scripts/cleaning_herbs.py --bank-item-name "Grimy kwuarm" --dry-run
+.venv/bin/python scripts/mine_bank.py --calibrate
+.venv/bin/python scripts/mine_bank.py --dry-run
+.venv/bin/python scripts/blast_furnace.py --dry-run
+.venv/bin/python scripts/cleaning_herbs.py --calibrate
+.venv/bin/python scripts/cleaning_herbs.py --dry-run
 ```
 
 Using the example config:
@@ -90,9 +94,11 @@ scripts/wc_fossil.py
 scripts/combat_mode.py
 scripts/gem_cutting.py
 scripts/steel_cannonball.py
+scripts/blast_furnace.py
 scripts/fletching_logs.py
 scripts/powermining.py
 scripts/motherlode_mine.py
+scripts/mine_bank.py
 scripts/cleaning_herbs.py
 src/visual_automation/              # installable application package
 templates/template_click_sequence/
@@ -108,6 +114,7 @@ config/wc_fossil.example.json
 config/fletching_logs.example.json
 config/powermining.example.json
 config/motherlode_mine.example.json
+config/mine_bank.example.json
 ```
 
 More detail: [ARCHITECTURE.md](ARCHITECTURE.md).

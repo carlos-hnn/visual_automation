@@ -72,6 +72,7 @@ def find_window_bounds(title_contains: str) -> dict[str, int] | None:
         except Exception:
             return None
         title_lower = title_contains.lower()
+        candidates: list[dict[str, int]] = []
         for window in gw.getAllWindows():
             title = str(getattr(window, "title", "") or "")
             if title_lower not in title.lower():
@@ -80,13 +81,13 @@ def find_window_bounds(title_contains: str) -> dict[str, int] | None:
             height = int(getattr(window, "height", 0) or 0)
             if width <= 0 or height <= 0:
                 continue
-            return {
+            candidates.append({
                 "left": int(getattr(window, "left", 0) or 0),
                 "top": int(getattr(window, "top", 0) or 0),
                 "width": width,
                 "height": height,
-            }
-        return None
+            })
+        return max(candidates, key=lambda item: item["width"] * item["height"], default=None)
 
     try:
         import Quartz  # type: ignore[import-not-found]
@@ -94,6 +95,7 @@ def find_window_bounds(title_contains: str) -> dict[str, int] | None:
         return None
 
     windows = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, Quartz.kCGNullWindowID)
+    candidates: list[dict[str, int]] = []
     for window in windows:
         owner = str(window.get("kCGWindowOwnerName") or "")
         title = str(window.get("kCGWindowName") or "")
@@ -102,13 +104,17 @@ def find_window_bounds(title_contains: str) -> dict[str, int] | None:
         bounds = window.get("kCGWindowBounds")
         if not bounds:
             continue
-        return {
+        width = int(bounds["Width"])
+        height = int(bounds["Height"])
+        if width <= 0 or height <= 0:
+            continue
+        candidates.append({
             "left": int(bounds["X"]),
             "top": int(bounds["Y"]),
-            "width": int(bounds["Width"]),
-            "height": int(bounds["Height"]),
-        }
-    return None
+            "width": width,
+            "height": height,
+        })
+    return max(candidates, key=lambda item: item["width"] * item["height"], default=None)
 
 
 def resolve_regions(config: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int] | None]:

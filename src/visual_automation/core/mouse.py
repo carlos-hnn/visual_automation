@@ -35,6 +35,12 @@ class MouseController:
         pyautogui.click(button=button)
         time.sleep(self.config.click_pause_seconds)
 
+    def click_immediately(self, x: int, y: int, button: str = "left") -> None:
+        """Click a refreshed target without another humanized movement delay."""
+        pyautogui.moveTo(int(x), int(y), duration=0, _pause=False)
+        pyautogui.click(button=button)
+        time.sleep(self.config.click_pause_seconds)
+
     def click_point(self, x: int, y: int, tolerance_pixels: int | None = None, button: str = "left") -> tuple[int, int]:
         target_x, target_y = self.point_near(x, y, tolerance_pixels=tolerance_pixels)
         self.click(target_x, target_y, button=button)
@@ -190,6 +196,9 @@ class QuartzMouseController(MouseController):
         if down_error != success or up_error != success:
             raise RuntimeError(f"Quartz click failed: down={down_error}, up={up_error}")
         time.sleep(self.config.click_pause_seconds)
+
+    def click_immediately(self, x: int, y: int, button: str = "left") -> None:
+        self.click(x, y, button=button)
 
     def move_to(self, x: int, y: int) -> None:
         # Background Quartz clicks intentionally leave the user's pointer alone.

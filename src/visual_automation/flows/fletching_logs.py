@@ -10,14 +10,13 @@ import cv2
 import numpy as np
 import pyautogui
 
-from visual_automation.actions import StopKeys, build_mouse, humanized_delay, wait_ticks
+from visual_automation.actions import StopKeys, build_mouse, wait_ticks
 from visual_automation.actions.bank import BankActions
 from visual_automation.actions.templates import TemplateActions
 from visual_automation.config import load_json_config, value_from_config
 from visual_automation.core.keyboard import KeyboardController
 from visual_automation.core.screen import ScreenCapture
 from visual_automation.core.terminal import install_timestamped_print
-from visual_automation.core.vision import TemplateMatch
 from visual_automation.definitions import ROOT
 from visual_automation.game_states.color_markers import (
     best_color_marker,
