@@ -5,25 +5,23 @@ import random
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pyautogui
 
 from visual_automation.actions import StopKeys, build_mouse
+from visual_automation.actions.markers import select_marker
 from visual_automation.actions.templates import TemplateActions
 from visual_automation.config import load_json_config, value_from_config
 from visual_automation.core.screen import ScreenCapture
 from visual_automation.core.terminal import install_timestamped_print
 from visual_automation.definitions import ROOT
-from visual_automation.game_states.color_markers import (
-    best_color_marker,
-    marker_click_point,
-    marker_settings_from_config,
-)
+from visual_automation.game_states.color_markers import capture_color_markers, marker_settings_from_config
 from visual_automation.game_states.inventory import detect_inventory_grid_status
 from visual_automation.game_states.template_matching import parse_scales
 from visual_automation.game_states.template_state import TemplateMatcherState, TemplateState
 from visual_automation.platforming import add_platform_argument, resolve_platform
+from visual_automation.runtime import click_color_marker, relative_region, wait_for_state
 from visual_automation.template_config import find_window_bounds
 
 install_timestamped_print()
@@ -78,44 +76,8 @@ def inventory_status(screen: ScreenCapture, region: dict[str, int], args):
     )
 
 
-def relative_region(window: dict[str, int], raw: dict[str, Any]) -> dict[str, int]:
-    return {
-        "left": window["left"] + int(raw["left"]),
-        "top": window["top"] + int(raw["top"]),
-        "width": min(int(raw["width"]), window["width"] - int(raw["left"])),
-        "height": min(int(raw["height"]), window["height"] - int(raw["top"])),
-    }
-
-
 def template(name: str, path: Path, args, region: dict[str, int] | None = None) -> TemplateState:
     return TemplateState(name, path, args.threshold, tuple(args.template_scales), region, (0, 0))
-
-
-def wait_until(label: str, predicate: Callable[[], bool], args, stop_keys: StopKeys) -> bool:
-    deadline = time.monotonic() + args.state_timeout
-    while not stop_keys.stop_requested and time.monotonic() < deadline:
-        if predicate():
-            print(f"{label}: confirmed")
-            return True
-        print(f"{label}: waiting")
-        time.sleep(args.poll_seconds)
-    print(f"{label}: timed out")
-    return False
-
-
-def click_marker(label: str, screen: ScreenCapture, region, settings, mouse, args, stop_keys: StopKeys) -> bool:
-    deadline = time.monotonic() + args.state_timeout
-    while not stop_keys.stop_requested and time.monotonic() < deadline:
-        match = best_color_marker(screen.capture(region), settings)
-        if match is not None:
-            point = marker_click_point(match, args.click_scale, args.spot_jitter)
-            print(f"{label}: marker at {match.center}; clicking {point}")
-            if not args.dry_run:
-                mouse.click(*point)
-            return True
-        print(f"{label}: marker not found; retrying")
-        time.sleep(args.retry_seconds)
-    return False
 
 
 def click_bank_items(window, mouse, args) -> None:
@@ -145,7 +107,7 @@ def run_calibration(args, config: dict[str, Any]) -> int:
         / value_from_config(
             config,
             "deposit_all_template",
-            "templates/steel_cannonball/deposit_all.png",
+            "templates/shared/bank/deposit_all.png",
         ),
         args,
         regions["bank"],
@@ -168,7 +130,8 @@ def run_calibration(args, config: dict[str, Any]) -> int:
         print(f"collector prompt: {prompt_match is not None}; score={prompt_score:.3f}")
         for name in ("bank", "furnace", "collector"):
             settings = marker_settings_from_config(config, f"{name}_marker")
-            match = best_color_marker(screen.capture(regions["game"]), settings)
+            markers = capture_color_markers(screen, regions["game"], settings)
+            match = select_marker(markers, regions["game"])
             print(f"{name} marker: {match.center if match else 'not visible'}")
     return 0
 
@@ -187,13 +150,13 @@ def run_flow(args, config: dict[str, Any]) -> int:
     templates = {
         "deposit_all": template(
             "deposit_all",
-            ROOT / value_from_config(config, "deposit_all_template", "templates/steel_cannonball/deposit_all.png"),
+            ROOT / value_from_config(config, "deposit_all_template", "templates/shared/bank/deposit_all.png"),
             args,
             bank_region,
         ),
         "bank_close": template(
             "bank_close",
-            ROOT / value_from_config(config, "bank_close_template", "templates/steel_cannonball/bank_close.png"),
+            ROOT / value_from_config(config, "bank_close_template", "templates/shared/bank/bank_close.png"),
             args,
             bank_region,
         ),
@@ -250,49 +213,49 @@ def run_flow(args, config: dict[str, Any]) -> int:
                 failed = False
                 for load in range(1, args.loads_before_collection + 1):
                     print(f"Load {load}/{args.loads_before_collection}")
-                    if not click_marker("bank", screen, game_region, colors["bank"], mouse, args, stop_keys):
+                    if not click_color_marker("bank", screen, game_region, colors["bank"], mouse, args, stop_keys):
                         failed = True
                         break
-                    if not wait_until("bank open", bank_open, args, stop_keys):
+                    if not wait_for_state("bank open", bank_open, args, stop_keys):
                         failed = True
                         break
                     if not clicks.find_and_click(templates["deposit_all"]):
                         failed = True
                         break
                     click_bank_items(window, mouse, args)
-                    if not wait_until("inventory full", inventory_full, args, stop_keys):
+                    if not wait_for_state("inventory full", inventory_full, args, stop_keys):
                         failed = True
                         break
                     if not clicks.find_and_click(templates["bank_close"]):
                         failed = True
                         break
-                    if not wait_until("bank closed", lambda: not bank_open(), args, stop_keys):
+                    if not wait_for_state("bank closed", lambda: not bank_open(), args, stop_keys):
                         failed = True
                         break
-                    if not click_marker("furnace", screen, game_region, colors["furnace"], mouse, args, stop_keys):
+                    if not click_color_marker("furnace", screen, game_region, colors["furnace"], mouse, args, stop_keys):
                         failed = True
                         break
-                    if not wait_until("inventory emptied at furnace", inventory_empty, args, stop_keys):
+                    if not wait_for_state("inventory emptied at furnace", inventory_empty, args, stop_keys):
                         failed = True
                         break
                 if failed:
                     print("Flow aborted in an intermediate state; restart manually after checking the game.")
                     return 1
-                if not click_marker("collector", screen, game_region, colors["collector"], mouse, args, stop_keys):
+                if not click_color_marker("collector", screen, game_region, colors["collector"], mouse, args, stop_keys):
                     return 1
 
                 def prompt_visible() -> bool:
                     return state.exists(templates["collector_prompt"], 0.0)
 
-                if not wait_until("collector prompt", prompt_visible, args, stop_keys):
+                if not wait_for_state("collector prompt", prompt_visible, args, stop_keys):
                     return 1
                 if not args.dry_run:
                     time.sleep(args.prompt_delay)
                     pyautogui.press("space")
                 print("collector confirmation: Space")
-                if not wait_until("collector prompt closed", lambda: not prompt_visible(), args, stop_keys):
+                if not wait_for_state("collector prompt closed", lambda: not prompt_visible(), args, stop_keys):
                     return 1
-                if not wait_until("bars collected / inventory full", inventory_full, args, stop_keys):
+                if not wait_for_state("bars collected / inventory full", inventory_full, args, stop_keys):
                     return 1
                 completed += 1
     finally:

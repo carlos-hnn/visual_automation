@@ -1,14 +1,9 @@
 {
-  "mouse_backend": "standard",
-  "platform": "auto",
   "templates_dir": "templates/woodcut_firemake",
   "template_dirs_by_platform": {
     "windows": "templates/woodcut_firemake/windows"
   },
-  "window_title": "RuneLite",
   "regions_are_window_relative": true,
-  "monitor": 1,
-  "template_scales": "0.5",
   "template_scales_by_name": {
     "woodcutting_status": "0.5",
     "empty_inventory_slot": "0.5",
@@ -116,14 +111,9 @@
   "tree_fallback_threshold": 0.68,
   "no_target_backoff_seconds": 0.25,
   "poll_seconds": 0.15,
-  "tick_seconds": 0.6,
   "time_jitter": 0.08,
   "pre_click_jitter": 0.05,
   "spot_jitter": 4,
-  "click_scale": 1.0,
-  "countdown": 2.0,
   "loops": 0,
-  "dry_run": false,
-  "move_duration_min": 0.16,
-  "move_duration_max": 0.32
+  "dry_run": false
 }

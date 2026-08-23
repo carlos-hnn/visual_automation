@@ -461,7 +461,7 @@ def run_bank_sequence(screen: ScreenCapture, mouse, regions: dict[str, dict[str,
         click_exact_center(mouse, bank_marker, "bank", args, args.dry_run)
     print(f"deposit all: waiting up to {float(value_from_config(config, 'bank_open_timeout_seconds', DEFAULTS.bank_open_timeout_seconds)):.2f}s")
 
-    deposit_template = resolve_path(value_from_config(config, "deposit_all_template", "templates/gem_cutting/deposit_all.png"))
+    deposit_template = resolve_path(value_from_config(config, "deposit_all_template", "templates/shared/bank/deposit_all.png"))
     deposit_scales = parse_scales(value_from_config(config, "deposit_all_scales", [1.0]))
     deposit_threshold = float(value_from_config(config, "deposit_all_threshold", 0.88))
     deposit_match, deposit_score, deposit_scale = wait_for_template(

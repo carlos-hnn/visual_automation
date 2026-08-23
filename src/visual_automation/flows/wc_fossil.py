@@ -11,12 +11,12 @@ import numpy as np
 import pyautogui
 
 from visual_automation.actions import StopKeys, build_mouse, match_click_coordinates
+from visual_automation.actions.markers import MarkerActions, StabilityPolicy, click_marker, select_marker
 from visual_automation.actions.timing import wait_ticks
 from visual_automation.config import load_json_config, value_from_config
 from visual_automation.core.screen import Frame, ScreenCapture
 from visual_automation.core.terminal import install_timestamped_print
 from visual_automation.definitions import ROOT
-from visual_automation.flows.woodcutting import click_marker, nearest_to_center, region_center
 from visual_automation.game_states.bank import detect_bank_status
 from visual_automation.game_states.color_markers import (
     find_color_markers,
@@ -158,7 +158,7 @@ def find_color_target(screen, region, settings, nearest: bool = False, exclusion
         and excluded["top"] <= marker.center[1] < excluded["top"] + excluded["height"]
         for excluded in exclusions
     )]
-    target = nearest_to_center(markers, region_center(region)) if nearest else (markers[0] if markers else None)
+    target = select_marker(markers, region, "nearest" if nearest else "best")
     return target, markers
 
 
@@ -192,42 +192,19 @@ def wait_and_click_color_target(
 def wait_and_click_stable_color_target(
     screen, mouse, region, settings, label: str, args, stop_keys,
 ) -> bool:
-    deadline = time.monotonic() + max(0.0, args.marker_timeout)
-    previous = None
-    stable_samples = 0
-    while not stop_keys.stop_requested and time.monotonic() < deadline:
-        target, markers = find_color_target(screen, region, settings, nearest=True)
-        if target is None:
-            previous = None
-            stable_samples = 0
-        else:
-            if previous is not None and (
-                abs(target.center[0] - previous.center[0]) <= args.stable_marker_tolerance
-                and abs(target.center[1] - previous.center[1]) <= args.stable_marker_tolerance
-            ):
-                stable_samples += 1
-            else:
-                stable_samples = 1
-            previous = target
-            print(
-                f"{label}: candidate center={target.center}; "
-                f"stable={stable_samples}/{args.stable_marker_samples}"
-            )
-            if stable_samples >= args.stable_marker_samples:
-                final_target, final_markers = find_color_target(screen, region, settings, nearest=True)
-                if final_target is not None and (
-                    abs(final_target.center[0] - target.center[0]) <= args.stable_marker_tolerance
-                    and abs(final_target.center[1] - target.center[1]) <= args.stable_marker_tolerance
-                ):
-                    print(f"{label}: final fresh capture confirmed; {len(final_markers)} marker(s)")
-                    click_marker(mouse, final_target, label, args, args.dry_run)
-                    return True
-                previous = None
-                stable_samples = 0
-                print(f"{label}: moved during final confirmation; restarting stability check")
-        time.sleep(max(0.05, args.stable_marker_interval))
-    print(f"{label}: no stable marker found before timeout")
-    return False
+    marker = MarkerActions(screen, mouse, args, stop_keys).wait_until_stable_and_click(
+        label,
+        region,
+        settings,
+        timeout=args.marker_timeout,
+        policy=StabilityPolicy(
+            samples=args.stable_marker_samples,
+            interval=args.stable_marker_interval,
+            tolerance=args.stable_marker_tolerance,
+        ),
+        strategy="nearest",
+    )
+    return marker is not None
 
 
 def wait_clicked_marker_gone(screen, region, settings, clicked, label: str, args, stop_keys) -> bool:

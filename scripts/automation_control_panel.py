@@ -14,6 +14,17 @@ from typing import Any
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from visual_automation.config import (  # noqa: E402
+    SHARED_DEFAULTS_PATH,
+    config_overrides,
+    load_json_config,
+)
+from visual_automation.panel_schema import panel_metadata  # noqa: E402
+
 PYTHON = Path(sys.executable)
 RUNTIME_CONFIG_DIR = ROOT / "config" / "runtime"
 
@@ -65,9 +76,8 @@ class ProcessManager:
             if self.process is not None and self.process.poll() is None:
                 raise RuntimeError("Another automation is already running")
 
+        save_config(script_id, config)
         runtime_path = runtime_config_path(script_id)
-        runtime_path.parent.mkdir(parents=True, exist_ok=True)
-        runtime_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
         script_path = ROOT / SCRIPTS[script_id][1]
         environment = os.environ.copy()
         environment["VISUAL_AUTOMATION_MOUSE_BACKEND"] = str(config.get("mouse_backend", "standard"))
@@ -133,7 +143,7 @@ def runtime_config_path(script_id: str) -> Path:
 def load_config(script_id: str) -> dict[str, Any]:
     runtime = runtime_config_path(script_id)
     source = runtime if runtime.exists() else ROOT / SCRIPTS[script_id][2]
-    return json.loads(source.read_text(encoding="utf-8"))
+    return load_json_config(source)
 
 
 def save_config(script_id: str, config: dict[str, Any]) -> None:
@@ -143,7 +153,8 @@ def save_config(script_id: str, config: dict[str, Any]) -> None:
         raise ValueError("config must be an object")
     path = runtime_config_path(script_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    shared = load_json_config(SHARED_DEFAULTS_PATH, include_shared=False)
+    path.write_text(json.dumps(config_overrides(config, shared), indent=2) + "\n", encoding="utf-8")
 
 
 HTML_PATH = ROOT / "web" / "control_panel.html"
@@ -192,10 +203,17 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if parsed.path == "/api/state":
-            scripts = [
-                {"id": script_id, "label": values[0], "config": load_config(script_id)}
-                for script_id, values in SCRIPTS.items()
-            ]
+            scripts = []
+            for script_id, values in SCRIPTS.items():
+                config = load_config(script_id)
+                scripts.append(
+                    {
+                        "id": script_id,
+                        "label": values[0],
+                        "config": config,
+                        "metadata": panel_metadata(config),
+                    }
+                )
             self.send_json({"scripts": scripts, "process": MANAGER.status()})
             return
         if parsed.path == "/api/status":

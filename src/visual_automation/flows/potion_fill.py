@@ -39,7 +39,7 @@ DEFAULT_CONFIG_PATH = ROOT / "config" / "potion_fill.example.json"
 
 @dataclass(frozen=True)
 class Defaults:
-    templates_dir: Path = ROOT / "templates" / "steel_cannonball"
+    templates_dir: Path = ROOT / "templates" / "shared" / "bank"
     template_scales: str = "0.5"
     threshold: float = 0.82
     poll_seconds: float = 0.12

@@ -1,17 +1,9 @@
 {
-  "mouse_backend": "standard",
-  "platform": "auto",
-  "window_title": "RuneLite",
-  "monitor": 1,
-  "templates_dir": "templates/steel_cannonball",
-  "template_scales": "0.5",
-  "threshold": 0.82,
+  "templates_dir": "templates/shared/bank",
   "thresholds": {
     "deposit_all": 0.75,
     "bank_close": 0.62
   },
-  "click_timeout": 3.0,
-  "poll_seconds": 0.12,
   "retry_seconds": 1.0,
   "state_timeout": 120.0,
   "empty_slots_required": 28,
@@ -33,39 +25,80 @@
   "chat_prompt_timeout": 8.0,
   "chat_poll_seconds": 0.12,
   "chat_change_threshold": 4.0,
-  "tick_seconds": 0.6,
   "production_wait_ticks": 15.0,
   "completion_poll_seconds": 1.0,
-  "time_jitter": 0.06,
-  "pre_click_jitter": 0.04,
-  "spot_jitter": 3,
-  "click_scale": 1.0,
-  "move_duration_min": 0.16,
-  "move_duration_max": 0.32,
-  "countdown": 2.0,
   "loops": 0,
   "dry_run": false,
   "regions": {
-    "game": {"left": 0, "top": 35, "width": 500, "height": 800},
-    "bank_world": {"left": 0, "top": 35, "width": 500, "height": 800},
-    "bank": {"left": 20, "top": 35, "width": 540, "height": 900},
-    "inventory": {"left": 598, "top": 683, "width": 210, "height": 281},
-    "chat": {"left": 0, "top": 800, "width": 500, "height": 160}
+    "game": {
+      "left": 0,
+      "top": 35,
+      "width": 500,
+      "height": 800
+    },
+    "bank_world": {
+      "left": 0,
+      "top": 35,
+      "width": 500,
+      "height": 800
+    },
+    "bank": {
+      "left": 20,
+      "top": 35,
+      "width": 540,
+      "height": 900
+    },
+    "inventory": {
+      "left": 598,
+      "top": 683,
+      "width": 210,
+      "height": 281
+    },
+    "chat": {
+      "left": 0,
+      "top": 800,
+      "width": 500,
+      "height": 160
+    }
   },
-  "bank_marker_hsv_min": [80, 100, 80],
-  "bank_marker_hsv_max": [105, 255, 255],
+  "bank_marker_hsv_min": [
+    80,
+    100,
+    80
+  ],
+  "bank_marker_hsv_max": [
+    105,
+    255,
+    255
+  ],
   "bank_marker_min_pixels": 100,
   "bank_marker_min_dimension": 8,
   "bank_marker_max_dimension": 120,
   "bank_marker_grouping_pixels": 1,
-  "green_marker_hsv_min": [35, 80, 50],
-  "green_marker_hsv_max": [75, 255, 255],
+  "green_marker_hsv_min": [
+    35,
+    80,
+    50
+  ],
+  "green_marker_hsv_max": [
+    75,
+    255,
+    255
+  ],
   "green_marker_min_pixels": 40,
   "green_marker_min_dimension": 4,
   "green_marker_max_dimension": 90,
   "green_marker_grouping_pixels": 0,
-  "red_marker_hsv_min": [169, 100, 70],
-  "red_marker_hsv_max": [18, 255, 255],
+  "red_marker_hsv_min": [
+    169,
+    100,
+    70
+  ],
+  "red_marker_hsv_max": [
+    18,
+    255,
+    255
+  ],
   "red_marker_min_pixels": 40,
   "red_marker_min_dimension": 4,
   "red_marker_max_dimension": 90,

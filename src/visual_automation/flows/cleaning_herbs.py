@@ -4,7 +4,6 @@ import argparse
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
 
 import pyautogui
 
@@ -16,14 +15,14 @@ from visual_automation.core.terminal import install_timestamped_print
 from visual_automation.definitions import ROOT
 from visual_automation.game_states.color_markers import (
     best_color_marker,
-    marker_click_point,
     marker_settings_from_config,
 )
 from visual_automation.game_states.inventory import detect_inventory_grid_status
 from visual_automation.game_states.template_matching import parse_scales
-from visual_automation.game_states.template_state import TemplateMatcherState, TemplateState
+from visual_automation.game_states.template_state import TemplateMatcherState
 from visual_automation.platforming import add_platform_argument, resolve_platform
-from visual_automation.template_config import find_window_bounds, threshold_for
+from visual_automation.runtime import click_color_marker, make_template, relative_region, wait_for_state
+from visual_automation.template_config import find_window_bounds
 
 install_timestamped_print()
 
@@ -66,49 +65,6 @@ class Defaults:
 DEFAULTS = Defaults()
 
 
-def relative_region(window: dict[str, int], raw: dict[str, Any]) -> dict[str, int]:
-    left, top = int(raw["left"]), int(raw["top"])
-    return {
-        "left": window["left"] + left,
-        "top": window["top"] + top,
-        "width": min(int(raw["width"]), max(1, window["width"] - left)),
-        "height": min(int(raw["height"]), max(1, window["height"] - top)),
-    }
-
-
-def make_template(name: str, path: Path, args, config, region) -> TemplateState:
-    return TemplateState(
-        name, path, threshold_for(config, name, args.threshold), tuple(args.template_scales), region, (0, 0)
-    )
-
-
-def wait_until(label: str, predicate: Callable[[], bool], args, stop_keys: StopKeys) -> bool:
-    deadline = time.monotonic() + args.state_timeout
-    while not stop_keys.stop_requested and time.monotonic() < deadline:
-        if predicate():
-            print(f"{label}: confirmed")
-            return True
-        print(f"{label}: waiting")
-        time.sleep(args.poll_seconds)
-    print(f"{label}: timed out")
-    return False
-
-
-def click_color_marker(label, screen, region, settings, mouse, args, stop_keys: StopKeys) -> bool:
-    deadline = time.monotonic() + args.state_timeout
-    while not stop_keys.stop_requested and time.monotonic() < deadline:
-        marker = best_color_marker(screen.capture(region), settings)
-        if marker is not None:
-            point = marker_click_point(marker, args.click_scale, args.spot_jitter)
-            print(f"{label}: marker at {marker.center}; clicking {point}")
-            if not args.dry_run:
-                mouse.click(*point)
-            return True
-        print(f"{label}: marker not found; retrying")
-        time.sleep(args.retry_seconds)
-    return False
-
-
 def click_first_bank_item(window, mouse, args) -> None:
     x, y = window["left"] + args.first_item_x, window["top"] + args.first_item_y
     print(f"bank first item: clicking once near ({x}, {y})")
@@ -148,7 +104,7 @@ def build_runtime(args, config):
         name: relative_region(window, raw[name])
         for name in ("game", "bank_world", "bank", "inventory")
     }
-    templates_dir = ROOT / str(value_from_config(config, "templates_dir", "templates/steel_cannonball"))
+    templates_dir = ROOT / str(value_from_config(config, "templates_dir", "templates/shared/bank"))
     templates = {
         name: make_template(name, templates_dir / f"{name}.png", args, config, regions["bank"])
         for name in ("deposit_all", "bank_close")
@@ -229,18 +185,18 @@ def run_flow(args, config) -> int:
                         "bank", screen, regions["bank_world"], bank_settings, mouse, args, stop_keys
                     ):
                         return 1
-                    if not wait_until("bank open", bank_open, args, stop_keys):
+                    if not wait_for_state("bank open", bank_open, args, stop_keys):
                         return 1
                 if not clicks.find_and_click(templates["deposit_all"]):
                     return 1
-                if not wait_until("inventory empty", lambda: inventory_status().is_empty, args, stop_keys):
+                if not wait_for_state("inventory empty", lambda: inventory_status().is_empty, args, stop_keys):
                     return 1
                 click_first_bank_item(window, mouse, args)
-                if not wait_until("inventory full", lambda: inventory_status().is_full, args, stop_keys):
+                if not wait_for_state("inventory full", lambda: inventory_status().is_full, args, stop_keys):
                     return 1
                 if not clicks.find_and_click(templates["bank_close"]):
                     return 1
-                if not wait_until("bank closed", lambda: not bank_open(), args, stop_keys):
+                if not wait_for_state("bank closed", lambda: not bank_open(), args, stop_keys):
                     return 1
                 if not click_all_herbs(regions["inventory"], mouse, args, stop_keys):
                     return 1

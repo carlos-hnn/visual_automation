@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import math
-import random
 import time
 from pathlib import Path
 from typing import Any
@@ -10,14 +9,14 @@ from typing import Any
 import pyautogui
 
 from visual_automation.actions import StopKeys, build_mouse, humanized_delay, wait_ticks
+from visual_automation.actions.markers import click_marker, select_marker
 from visual_automation.config import load_json_config, value_from_config
+from visual_automation.core.geometry import region_center
 from visual_automation.core.screen import ScreenCapture
 from visual_automation.core.terminal import install_timestamped_print
-from visual_automation.core.vision import TemplateMatch
 from visual_automation.definitions import ROOT
 from visual_automation.game_states.color_markers import (
     capture_color_markers,
-    marker_click_point,
     marker_settings_from_config,
     sorted_inventory_markers,
 )
@@ -31,34 +30,6 @@ install_timestamped_print()
 
 SCRIPT_NAME = "woodcutting"
 DEFAULT_CONFIG_PATH = ROOT / "config" / "woodcutting.example.json"
-
-
-def region_center(region: dict[str, int]) -> tuple[int, int]:
-    return (
-        int(region["left"]) + int(region["width"]) // 2,
-        int(region["top"]) + int(region["height"]) // 2,
-    )
-
-
-def nearest_to_center(markers: list[TemplateMatch], center: tuple[int, int]) -> TemplateMatch | None:
-    if not markers:
-        return None
-    return min(markers, key=lambda marker: math.dist(marker.center, center))
-
-
-
-def click_marker(mouse, marker: TemplateMatch, label: str, args, dry_run: bool) -> None:
-    x, y = marker_click_point(marker, args.click_scale, args.spot_jitter)
-    if dry_run:
-        print(
-            f"{label}: would click=({x},{y}), center={marker.center}, "
-            f"pixels={marker.score:.0f}, rect=({marker.x},{marker.y},{marker.width},{marker.height})"
-        )
-        return
-    if args.pre_click_jitter > 0:
-        time.sleep(random.uniform(0.0, args.pre_click_jitter))
-    mouse.click(x, y)
-    print(f"{label}: clicked=({x},{y}), center={marker.center}, pixels={marker.score:.0f}")
 
 
 def drop_logs(screen, mouse, region, settings, stop_keys: StopKeys, args) -> int:
@@ -148,7 +119,7 @@ def run_flow(config: dict[str, Any], args) -> int:
                     continue
 
                 markers = capture_color_markers(screen, regions["game_targets"], target_settings)
-                target = nearest_to_center(markers, target_center)
+                target = select_marker(markers, regions["game_targets"], "nearest")
                 if target is None:
                     print("game targets: no cyan marker found")
                     wait_ticks("no target", args.no_target_wait_ticks, args, args.dry_run)

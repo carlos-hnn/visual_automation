@@ -1,15 +1,41 @@
 {
-  "monitor": 1,
-  "window_title": "RuneLite",
-  "mouse_backend": "standard",
-  "platform": "auto",
-  "combat_region": {"left": 8, "top": 72, "width": 130, "height": 22},
-  "target_region": {"left": 4, "top": 140, "width": 766, "height": 745},
-  "health_region": {"left": 519, "top": 705, "width": 19, "height": 272},
-  "prayer_region": {"left": 544, "top": 705, "width": 19, "height": 272},
-  "inventory_region": {"left": 568, "top": 705, "width": 198, "height": 269},
+  "combat_region": {
+    "left": 8,
+    "top": 72,
+    "width": 130,
+    "height": 22
+  },
+  "target_region": {
+    "left": 4,
+    "top": 140,
+    "width": 766,
+    "height": 745
+  },
+  "health_region": {
+    "left": 519,
+    "top": 705,
+    "width": 19,
+    "height": 272
+  },
+  "prayer_region": {
+    "left": 544,
+    "top": 705,
+    "width": 19,
+    "height": 272
+  },
+  "inventory_region": {
+    "left": 568,
+    "top": 705,
+    "width": 198,
+    "height": 269
+  },
   "task_counter_enabled": false,
-  "task_counter_region": {"left": 130, "top": 842, "width": 155, "height": 42},
+  "task_counter_region": {
+    "left": 130,
+    "top": 842,
+    "width": 155,
+    "height": 42
+  },
   "task_counter_check_seconds": 10.0,
   "task_counter_stop_at": 3,
   "health_monitor_enabled": true,
@@ -22,8 +48,16 @@
   "health_check_seconds": 5.0,
   "required_low_health_readings": 2,
   "eat_cooldown_seconds": 3.0,
-  "potion_marker_hsv_min": [35, 110, 70],
-  "potion_marker_hsv_max": [90, 255, 255],
+  "potion_marker_hsv_min": [
+    35,
+    110,
+    70
+  ],
+  "potion_marker_hsv_max": [
+    90,
+    255,
+    255
+  ],
   "potion_marker_min_green_pixels": 120,
   "potion_marker_min_dimension": 8,
   "potion_marker_max_dimension": 70,
@@ -32,10 +66,23 @@
   "required_low_prayer_readings": 1,
   "drink_cooldown_seconds": 8.0,
   "ignored_regions": [
-    {"left": 585, "top": 35, "width": 185, "height": 205},
-    {"left": 510, "top": 700, "width": 260, "height": 185}
+    {
+      "left": 585,
+      "top": 35,
+      "width": 185,
+      "height": 205
+    },
+    {
+      "left": 510,
+      "top": 700,
+      "width": 260,
+      "height": 185
+    }
   ],
-  "character_anchor": {"x": 403, "y": 528},
+  "character_anchor": {
+    "x": 403,
+    "y": 528
+  },
   "combat_entry_green_threshold": 0.02,
   "combat_sustain_min_green_pixels": 3,
   "required_out_of_combat_readings": 1,
@@ -48,7 +95,6 @@
   "grouping_pixels": 8,
   "target_anchor_exclusion_radius": 70.0,
   "target_reacquire_max_distance": 120.0,
-  "countdown": 2.0,
   "spot_jitter": 2,
   "dry_run": false
 }

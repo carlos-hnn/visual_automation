@@ -1,0 +1,18 @@
+{
+  "mouse_backend": "standard",
+  "platform": "auto",
+  "window_title": "RuneLite",
+  "monitor": 1,
+  "template_scales": "0.5",
+  "threshold": 0.82,
+  "poll_seconds": 0.12,
+  "tick_seconds": 0.6,
+  "click_timeout": 3.0,
+  "time_jitter": 0.06,
+  "pre_click_jitter": 0.04,
+  "spot_jitter": 3,
+  "click_scale": 1.0,
+  "move_duration_min": 0.16,
+  "move_duration_max": 0.32,
+  "countdown": 2.0
+}

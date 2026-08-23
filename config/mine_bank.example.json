@@ -1,52 +1,121 @@
 {
-  "mouse_backend": "standard",
-  "platform": "auto",
-  "window_title": "RuneLite",
   "regions_are_window_relative": true,
-  "monitor": 1,
   "regions": {
-    "bank_search": {"left": 20, "top": 300, "width": 730, "height": 400},
-    "mine_search": {"left": 20, "top": 300, "width": 730, "height": 400},
-    "mining_status": {"left": 5, "top": 55, "width": 125, "height": 48},
-    "inventory": {"left": 568, "top": 700, "width": 202, "height": 270},
-    "deposit_all": {"left": 330, "top": 680, "width": 200, "height": 200},
-    "bank_close": {"left": 420, "top": 45, "width": 120, "height": 110}
+    "bank_search": {
+      "left": 20,
+      "top": 300,
+      "width": 730,
+      "height": 400
+    },
+    "mine_search": {
+      "left": 20,
+      "top": 300,
+      "width": 730,
+      "height": 400
+    },
+    "mining_status": {
+      "left": 5,
+      "top": 55,
+      "width": 125,
+      "height": 48
+    },
+    "inventory": {
+      "left": 568,
+      "top": 700,
+      "width": 202,
+      "height": 270
+    },
+    "deposit_all": {
+      "left": 330,
+      "top": 680,
+      "width": 200,
+      "height": 200
+    },
+    "bank_close": {
+      "left": 420,
+      "top": 45,
+      "width": 120,
+      "height": 110
+    }
   },
-  "bank_marker_hsv_min": [85, 100, 100],
-  "bank_marker_hsv_max": [100, 255, 255],
+  "bank_marker_hsv_min": [
+    85,
+    100,
+    100
+  ],
+  "bank_marker_hsv_max": [
+    100,
+    255,
+    255
+  ],
   "bank_marker_min_pixels": 100,
   "bank_marker_min_dimension": 8,
   "bank_marker_max_dimension": 100,
   "bank_marker_grouping_pixels": 1,
-  "travel_marker_hsv_min": [22, 110, 100],
-  "travel_marker_hsv_max": [38, 255, 255],
+  "travel_marker_hsv_min": [
+    22,
+    110,
+    100
+  ],
+  "travel_marker_hsv_max": [
+    38,
+    255,
+    255
+  ],
   "travel_marker_min_pixels": 20,
   "travel_marker_min_dimension": 8,
   "travel_marker_max_dimension": 80,
   "travel_marker_grouping_pixels": 1,
   "travel_marker_max_rock_distance": 80,
-  "rock_marker_hsv_min": [170, 120, 80],
-  "rock_marker_hsv_max": [8, 255, 255],
+  "rock_marker_hsv_min": [
+    170,
+    120,
+    80
+  ],
+  "rock_marker_hsv_max": [
+    8,
+    255,
+    255
+  ],
   "rock_marker_min_pixels": 20,
   "rock_marker_min_dimension": 10,
   "rock_marker_max_dimension": 90,
   "rock_marker_grouping_pixels": 1,
-  "travel_fallback_point": {"x": 620, "y": 467},
+  "travel_fallback_point": {
+    "x": 620,
+    "y": 467
+  },
   "travel_fallback_point_is_window_relative": true,
   "inventory_full_mode": "last_slot_marker",
-  "inventory_marker_hsv_min": [85, 80, 80],
-  "inventory_marker_hsv_max": [105, 255, 255],
+  "inventory_marker_hsv_min": [
+    85,
+    80,
+    80
+  ],
+  "inventory_marker_hsv_max": [
+    105,
+    255,
+    255
+  ],
   "inventory_marker_min_pixels": 30,
   "inventory_marker_min_dimension": 8,
   "inventory_marker_max_dimension": 55,
   "inventory_marker_grouping_pixels": 1,
   "inventory_full_marker_count": 26,
-  "deposit_all_template": "templates/gem_cutting/deposit_all.png",
+  "deposit_all_template": "templates/shared/bank/deposit_all.png",
   "deposit_all_threshold": 0.88,
-  "deposit_all_scales": [0.5, 0.75, 1.0],
+  "deposit_all_scales": [
+    0.5,
+    0.75,
+    1.0
+  ],
   "bank_close_template": "templates/gem_cutting/bank_close.png",
   "bank_close_threshold": 0.40,
-  "bank_close_scales": [0.5, 0.75, 1.0],
+  "bank_close_scales": [
+    0.5,
+    0.75,
+    1.0
+  ],
   "bank_wait_seconds": 4.0,
   "travel_wait_seconds": 5.0,
   "target_retry_seconds": 0.5,
@@ -54,8 +123,16 @@
   "mining_start_timeout_seconds": 1.5,
   "mining_end_timeout_seconds": 20.0,
   "failed_mining_attempts_before_inventory_check": 2,
-  "mining_status_hsv_min": [35, 110, 70],
-  "mining_status_hsv_max": [90, 255, 255],
+  "mining_status_hsv_min": [
+    35,
+    110,
+    70
+  ],
+  "mining_status_hsv_max": [
+    90,
+    255,
+    255
+  ],
   "mining_status_min_green_pixels": 25,
   "mining_status_min_green_fraction": 0.002,
   "template_timeout_seconds": 3.0,
@@ -67,10 +144,6 @@
   "time_jitter": 0.0,
   "pre_click_jitter": 0.02,
   "spot_jitter": 1,
-  "click_scale": 1.0,
-  "countdown": 2.0,
   "dry_run": false,
-  "dry_run_sleep": false,
-  "move_duration_min": 0.16,
-  "move_duration_max": 0.32
+  "dry_run_sleep": false
 }

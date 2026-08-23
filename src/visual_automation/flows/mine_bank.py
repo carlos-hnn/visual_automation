@@ -15,8 +15,8 @@ from visual_automation.core.screen import ScreenCapture
 from visual_automation.core.terminal import install_timestamped_print
 from visual_automation.core.vision import TemplateMatch
 from visual_automation.definitions import ROOT
-from visual_automation.flows.motherlode_mine import best_template_match, inventory_is_full, is_mining, parse_scales
 from visual_automation.game_states.color_markers import capture_color_markers, marker_settings_from_config
+from visual_automation.game_states.mining import best_template_match, inventory_is_full, is_mining, parse_scales
 from visual_automation.platforming import add_platform_argument, resolve_path
 from visual_automation.template_config import resolve_regions
 
@@ -173,7 +173,7 @@ def bank_inventory(screen, mouse, regions, config, args) -> bool:
     click_match(mouse, marker, "bank", args, exact=True)
     if not wait_seconds("bank opening/movement", args.bank_wait_seconds, args):
         return False
-    if not click_template(screen, mouse, regions, config, args, "deposit_all", "templates/gem_cutting/deposit_all.png", 0.88):
+    if not click_template(screen, mouse, regions, config, args, "deposit_all", "templates/shared/bank/deposit_all.png", 0.88):
         return False
     if not wait_seconds("after deposit all", args.after_deposit_seconds, args):
         return False

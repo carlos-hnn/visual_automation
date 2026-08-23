@@ -1,8 +1,9 @@
 # Visual Automation Architecture
 
-This project is organized around active automation flows:
-`template_click_sequence`, `woodcutting`, `woodcut_firemake`, `gem_cutting`, `steel_cannonball`,
-`combat_mode`, `fletching_logs`, `powermining`, `herblore`, `potion_fill`, and `cleaning_herbs`.
+This project is organized around small orchestration flows backed by shared state,
+action, timing, geometry, marker, template, and configuration services. A flow
+should describe the game-specific state machine; reusable detection and clicking
+behavior belongs in the shared package.
 
 ## Active Layout
 
@@ -25,9 +26,13 @@ src/visual_automation/              # installable application package
   core/                         # low-level capture, input, vision, and safety
   definitions.py                  # shared paths and defaults
   config.py                       # JSON config loading helpers
+  runtime.py                      # migration-safe shared flow helpers
+  panel_schema.py                 # operational/advanced control classification
   platforming.py                  # OS/template platform selection
   template_config.py              # shared template regions, offsets, scales, window lookup
   actions/
+    bank.py                       # reusable deposit/close operations
+    markers.py                    # marker selection, waiting, and stable-click policy
     mouse.py                      # repeatable actions: Bezier mouse, jitter-aware click setup
     stop_keys.py                  # global stop keys and 30-second missing-target watchdog
     timing.py                     # delay humanization
@@ -50,6 +55,7 @@ src/visual_automation/              # installable application package
     powermining.py                # orchestration for marker-based powermining
 
 templates/
+  shared/bank/                    # canonical deposit-all and common bank-close assets
   template_click_sequence/        # templates owned by this script
   woodcut_firemake/               # templates owned by this script
   woodcutting/                    # status and empty-slot templates
@@ -63,6 +69,7 @@ templates/
   steel_cannonball/               # steel cannonball templates
 
 config/
+  shared_defaults.json            # inherited integration, movement, and timing defaults
   template_click_sequence.example.json
   woodcut_firemake.example.json
   woodcutting.example.json
@@ -76,6 +83,10 @@ config/
 ```
 
 ## Concepts
+
+Every JSON config inherits `config/shared_defaults.json`. Script configs contain
+only flow-specific behavior or explicit overrides. Runtime configs written by the
+control panel likewise omit values equal to the shared defaults.
 
 Game states are things we observe from the screen:
 
@@ -91,6 +102,14 @@ Actions are repeatable operations that can be reused by future scripts:
 - timing jitter;
 - pre-click delays;
 - stop-key handling.
+- color-marker selection (`best`, `nearest`, `leftmost`, `rightmost`);
+- stable-marker validation with a fresh capture immediately before the click;
+- bank deposit and close operations.
+
+The control panel keeps operational parameters visible and places regions, HSV
+ranges, thresholds, templates, polling, timeouts, and input integration under a
+collapsed Advanced settings section. The classification lives in
+`panel_schema.py`, not in browser code.
 
 Definitions are stable project concepts:
 
@@ -139,7 +158,8 @@ Calibrate and run gem cutting:
 .venv/bin/python scripts/gem_cutting.py --gem green --no-dry-run --loops 0
 ```
 
-For a new active script, create a dedicated template folder:
+For a new active script, reuse canonical assets from `templates/shared` and create
+a dedicated template folder only for flow-specific images:
 
 ```text
 templates/<script_name>/

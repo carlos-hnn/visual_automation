@@ -18,12 +18,6 @@ from visual_automation.core.safety import report_progress
 from visual_automation.core.screen import ScreenCapture
 from visual_automation.core.terminal import install_timestamped_print
 from visual_automation.definitions import ROOT
-from visual_automation.flows.cleaning_herbs import (
-    click_color_marker,
-    make_template,
-    relative_region,
-    wait_until,
-)
 from visual_automation.game_states.color_markers import (
     best_color_marker,
     capture_color_markers,
@@ -34,6 +28,12 @@ from visual_automation.game_states.inventory import detect_inventory_grid_status
 from visual_automation.game_states.template_matching import parse_scales
 from visual_automation.game_states.template_state import TemplateMatcherState
 from visual_automation.platforming import add_platform_argument, resolve_platform
+from visual_automation.runtime import (
+    click_color_marker,
+    make_template,
+    relative_region,
+    wait_for_state,
+)
 from visual_automation.template_config import find_window_bounds
 
 install_timestamped_print()
@@ -163,7 +163,7 @@ def build_runtime(args, config):
         if not isinstance(raw.get(name), dict):
             raise ValueError(f"Missing region: {name}")
     regions = {name: relative_region(window, raw[name]) for name in required}
-    templates_dir = ROOT / str(value_from_config(config, "templates_dir", "templates/steel_cannonball"))
+    templates_dir = ROOT / str(value_from_config(config, "templates_dir", "templates/shared/bank"))
     templates = {
         name: make_template(name, templates_dir / f"{name}.png", args, config, regions["bank"])
         for name in ("deposit_all", "bank_close")
@@ -253,7 +253,7 @@ def run_flow(args, config) -> int:
                     )
                     mouse.move_to(*hover_point)
                     print(f"bank opening: cursor pre-positioned near Deposit All at {hover_point}")
-                return wait_until("bank open", bank_open, args, stop_keys)
+                return wait_for_state("bank open", bank_open, args, stop_keys)
 
             def empty() -> bool:
                 status = inventory_status(screen, regions["inventory"], args)
@@ -284,22 +284,22 @@ def run_flow(args, config) -> int:
                     return 1
                 if not clicks.find_and_click(templates["deposit_all"]):
                     return 1
-                if not wait_until("inventory empty", empty, args, stop_keys):
+                if not wait_for_state("inventory empty", empty, args, stop_keys):
                     return 1
                 click_bank_items(window, mouse, args)
-                if not wait_until("inventory full", full, args, stop_keys):
+                if not wait_for_state("inventory full", full, args, stop_keys):
                     return 1
-                if not wait_until("bank close available", bank_close_ready, args, stop_keys):
+                if not wait_for_state("bank close available", bank_close_ready, args, stop_keys):
                     return 1
                 if not clicks.find_and_click(templates["bank_close"]):
                     return 1
-                if not wait_until("bank closed", lambda: not bank_open(), args, stop_keys):
+                if not wait_for_state("bank closed", lambda: not bank_open(), args, stop_keys):
                     return 1
                 # bank_close being absent is the expected closed-bank state; do not
                 # leave the template watchdog armed during the production wait.
                 report_progress("template:bank_close")
 
-                if not wait_until("green and red markers available", ingredients_ready, args, stop_keys):
+                if not wait_for_state("green and red markers available", ingredients_ready, args, stop_keys):
                     return 1
 
                 before_chat = screen.capture(regions["chat"]).image
