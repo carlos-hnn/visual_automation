@@ -1,0 +1,33 @@
+{
+  "regions_are_window_relative": true,
+  "regions": {
+    "game": {"left": 0, "top": 32, "width": 598, "height": 900},
+    "target_markers": {"left": 0, "top": 32, "width": 841, "height": 1024},
+    "target_ui_exclusion": {"left": 650, "top": 32, "width": 191, "height": 350},
+    "inventory_markers": {"left": 598, "top": 683, "width": 210, "height": 281},
+    "inventory_icon": {"left": 661, "top": 969, "width": 46, "height": 46}
+  },
+  "target_marker_hsv_min": [70, 60, 60],
+  "target_marker_hsv_max": [110, 255, 255],
+  "target_marker_min_pixels": 120,
+  "target_marker_min_dimension": 8,
+  "target_marker_max_dimension": 60,
+  "target_marker_grouping_pixels": 2,
+  "inventory_marker_hsv_min": [70, 60, 60],
+  "inventory_marker_hsv_max": [110, 255, 255],
+  "inventory_marker_min_pixels": 80,
+  "inventory_marker_min_dimension": 8,
+  "inventory_marker_max_dimension": 70,
+  "inventory_marker_grouping_pixels": 2,
+  "cleanup_every_clicks": 10,
+  "inventory_toggle_wait_seconds": 0.6,
+  "inventory_click_pause": 0.08,
+  "motion_sample_seconds": 0.25,
+  "motion_threshold": 2.0,
+  "motion_stable_samples": 4,
+  "motion_wait_timeout": 30.0,
+  "motion_start_grace_seconds": 0.8,
+  "motion_scale": 0.25,
+  "loops": 0,
+  "dry_run": false
+}

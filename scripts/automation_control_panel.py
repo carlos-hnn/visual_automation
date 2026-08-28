@@ -29,8 +29,8 @@ PYTHON = Path(sys.executable)
 RUNTIME_CONFIG_DIR = ROOT / "config" / "runtime"
 
 SCRIPTS = {
+    "hunter": ("Hunter", "scripts/hunter.py", "config/hunter.example.json"),
     "wc_fossil": ("WC Fossil", "scripts/wc_fossil.py", "config/wc_fossil.example.json"),
-    "woodcutting": ("Woodcutting", "scripts/woodcutting.py", "config/woodcutting.example.json"),
     "combat_mode": ("Combat Mode", "scripts/combat_mode.py", "config/combat_mode.example.json"),
     "template_click_sequence": (
         "Template Click Sequence", "scripts/template_click_sequence.py", "config/template_click_sequence.example.json"

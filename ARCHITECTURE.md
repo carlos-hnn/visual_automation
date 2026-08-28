@@ -11,7 +11,6 @@ behavior belongs in the shared package.
 scripts/
   template_click_sequence.py      # thin CLI entrypoint
   woodcut_firemake.py             # thin CLI entrypoint
-  woodcutting.py                  # cyan-marker tree cutting and log dropping
   wc_fossil.py                    # Fossil Island bank route entrypoint
   combat_mode.py                  # combat, health, prayer, and target flow
   gem_cutting.py                  # bank/withdraw/cut loop entrypoint
@@ -21,6 +20,7 @@ scripts/
   herblore.py                     # ranarr/vial mixing and static bank withdrawal loop
   potion_fill.py                  # green-tag potion pairing and static bank refill loop
   cleaning_herbs.py               # fixed-grid herb cleaning with visually confirmed bank states
+  hunter.py                       # cyan waypoint following with periodic inventory clearing
 
 src/visual_automation/              # installable application package
   core/                         # low-level capture, input, vision, and safety
@@ -48,7 +48,6 @@ src/visual_automation/              # installable application package
   flows/
     template_click_sequence.py    # orchestration for the active route runner
     woodcut_firemake.py           # orchestration for woodcutting and firemaking
-    woodcutting.py                # status/inventory loop and nearest cyan tree selection
     wc_fossil.py                  # hidden-passage travel and banking route
     gem_cutting.py                # orchestration for banking and cutting gems
     fletching_logs.py             # orchestration for banking and fletching logs
@@ -58,7 +57,6 @@ templates/
   shared/bank/                    # canonical deposit-all and common bank-close assets
   template_click_sequence/        # templates owned by this script
   woodcut_firemake/               # templates owned by this script
-  woodcutting/                    # status and empty-slot templates
   wc_fossil/                      # route notes; shared templates are reused
   combat_mode/                    # combat docs and target flow notes
   fletching_logs/                 # fletching templates
@@ -72,7 +70,6 @@ config/
   shared_defaults.json            # inherited integration, movement, and timing defaults
   template_click_sequence.example.json
   woodcut_firemake.example.json
-  woodcutting.example.json
   wc_fossil.example.json
   combat_mode.example.json
   gem_cutting.example.json

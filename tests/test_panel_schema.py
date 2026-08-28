@@ -7,7 +7,7 @@ def test_detection_and_integration_fields_are_advanced() -> None:
 
 
 def test_operation_fields_remain_visible() -> None:
-    for key in ("dry_run", "loops", "loads_before_collection", "first_item_clicks"):
+    for key in ("dry_run", "loops", "loads_before_collection", "first_item_clicks", "click_inventory_when_full"):
         assert field_section(key, None) == "operation"
 
 

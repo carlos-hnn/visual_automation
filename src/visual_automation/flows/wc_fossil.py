@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 import pyautogui
 
-from visual_automation.actions import StopKeys, build_mouse, match_click_coordinates
+from visual_automation.actions import StopKeys, build_mouse, humanized_delay, match_click_coordinates
 from visual_automation.actions.markers import MarkerActions, StabilityPolicy, click_marker, select_marker
 from visual_automation.actions.timing import wait_ticks
 from visual_automation.config import load_json_config, value_from_config
@@ -309,6 +309,27 @@ def show_mouse_position(interval: float) -> int:
         return 0
 
 
+def click_inventory_items(mouse, inventory, args, stop_keys: StopKeys) -> int:
+    positions = inventory.occupied_centers
+    print(f"inventory cleanup: {'would click' if args.dry_run else 'clicking'} {len(positions)} occupied slot(s)")
+    clicked = 0
+    for index, (x, y) in enumerate(positions, 1):
+        if stop_keys.stop_requested:
+            break
+        if args.dry_run:
+            print(f"inventory item {index}: would click=({x},{y})")
+        else:
+            mouse.click_point(x, y, tolerance_pixels=args.inventory_spot_jitter)
+            print(f"inventory item {index}: clicked=({x},{y})")
+            delay = humanized_delay(
+                args.inventory_click_ticks * args.tick_seconds,
+                args.inventory_time_jitter,
+            )
+            time.sleep(delay)
+        clicked += 1
+    return clicked
+
+
 def run_flow(config: dict[str, Any], args) -> int:
     config, window, regions, templates = prepare(config, args)
     blue_settings = marker_settings_from_config(config, "blue_marker")
@@ -359,6 +380,13 @@ def run_flow(config: dict[str, Any], args) -> int:
                         wait_before_status_check = True
                     else:
                         wait_ticks("no tree target", args.no_target_wait_ticks, args, args.dry_run)
+                    continue
+
+                if args.click_inventory_when_full:
+                    clicked = click_inventory_items(mouse, inventory, args, stop_keys)
+                    print(f"inventory cleanup complete: clicked_items={clicked}")
+                    wait_ticks("after inventory cleanup", args.after_inventory_click_ticks, args, args.dry_run)
+                    completed += 1
                     continue
 
                 green = wait_and_click_color_target(
@@ -512,6 +540,16 @@ def main() -> int:
     parser.add_argument("--inventory-row-spacing", type=float, default=value_from_config(config, "inventory_row_spacing", 38.5))
     parser.add_argument("--inventory-patch-radius", type=int, default=value_from_config(config, "inventory_patch_radius", 13))
     parser.add_argument("--inventory-occupied-std", type=float, default=value_from_config(config, "inventory_occupied_std", 8.0))
+    parser.add_argument(
+        "--click-inventory-when-full",
+        action=argparse.BooleanOptionalAction,
+        default=value_from_config(config, "click_inventory_when_full", True),
+        help="Click every occupied inventory slot instead of following the bank route.",
+    )
+    parser.add_argument("--inventory-click-ticks", type=float, default=value_from_config(config, "inventory_click_ticks", 0.025))
+    parser.add_argument("--inventory-time-jitter", type=float, default=value_from_config(config, "inventory_time_jitter", 0.0075))
+    parser.add_argument("--inventory-spot-jitter", type=int, default=value_from_config(config, "inventory_spot_jitter", 3))
+    parser.add_argument("--after-inventory-click-ticks", type=float, default=value_from_config(config, "after_inventory_click_ticks", 1.0))
     parser.add_argument("--click-timeout", type=float, default=value_from_config(config, "click_timeout", 3.0))
     parser.add_argument("--marker-timeout", type=float, default=value_from_config(config, "marker_timeout", 30.0))
     parser.add_argument("--bank-state-timeout", type=float, default=value_from_config(config, "bank_state_timeout", 15.0))

@@ -6,10 +6,41 @@ import numpy as np
 
 from visual_automation.core.screen import Frame
 from visual_automation.core.vision import TemplateMatch
-from visual_automation.flows.wc_fossil import configured_point, exclude_red_filled_targets, red_fill_fraction
+from visual_automation.flows.wc_fossil import (
+    click_inventory_items,
+    configured_point,
+    exclude_red_filled_targets,
+    red_fill_fraction,
+)
 
 
 class WcFossilTests(unittest.TestCase):
+    def test_inventory_cleanup_clicks_every_occupied_position(self) -> None:
+        class Mouse:
+            def __init__(self):
+                self.clicks = []
+
+            def click_point(self, x, y, tolerance_pixels):
+                self.tolerance_pixels = tolerance_pixels
+                self.clicks.append((x, y))
+
+        inventory = type("Inventory", (), {"occupied_centers": ((10, 20), (30, 40), (50, 60))})()
+        args = type("Args", (), {
+            "dry_run": False,
+            "inventory_click_ticks": 0.0,
+            "tick_seconds": 0.6,
+            "inventory_time_jitter": 0.0,
+            "inventory_spot_jitter": 3,
+        })()
+        stop_keys = type("StopKeys", (), {"stop_requested": False})()
+        mouse = Mouse()
+
+        clicked = click_inventory_items(mouse, inventory, args, stop_keys)
+
+        self.assertEqual(clicked, 3)
+        self.assertEqual(mouse.clicks, [(10, 20), (30, 40), (50, 60)])
+        self.assertEqual(mouse.tolerance_pixels, 3)
+
     def test_unfilled_point_defaults_to_zero(self) -> None:
         self.assertEqual(configured_point({}, "outbound", None), (0, 0))
 

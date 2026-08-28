@@ -44,10 +44,9 @@ enabled until the target application has been tested deliberately.
 ```bash
 .venv/bin/python scripts/template_click_sequence.py --dry-run
 .venv/bin/python scripts/woodcut_firemake.py --dry-run
-.venv/bin/python scripts/woodcutting.py --calibrate
-.venv/bin/python scripts/woodcutting.py --dry-run
 .venv/bin/python scripts/wc_fossil.py --show-mouse-position
 .venv/bin/python scripts/wc_fossil.py --dry-run
+.venv/bin/python scripts/wc_fossil.py --click-inventory-when-full --no-dry-run
 .venv/bin/python scripts/combat_mode.py --dry-run
 .venv/bin/python scripts/fletching_logs.py --dry-run
 .venv/bin/python scripts/powermining.py --dry-run
@@ -58,6 +57,7 @@ enabled until the target application has been tested deliberately.
 .venv/bin/python scripts/blast_furnace.py --dry-run
 .venv/bin/python scripts/cleaning_herbs.py --calibrate
 .venv/bin/python scripts/cleaning_herbs.py --dry-run
+.venv/bin/python scripts/hunter.py --dry-run
 ```
 
 Using the example config:
@@ -92,7 +92,6 @@ template set; otherwise the script falls back to the base template folder.
 ```text
 scripts/template_click_sequence.py
 scripts/woodcut_firemake.py
-scripts/woodcutting.py
 scripts/wc_fossil.py
 scripts/combat_mode.py
 scripts/gem_cutting.py
@@ -109,13 +108,11 @@ src/visual_automation/              # installable application package
 templates/shared/                   # canonical assets reused by flows
 templates/template_click_sequence/
 templates/woodcut_firemake/
-templates/woodcutting/
 templates/wc_fossil/
 templates/fletching_logs/
 templates/powermining/
 config/template_click_sequence.example.json
 config/woodcut_firemake.example.json
-config/woodcutting.example.json
 config/wc_fossil.example.json
 config/fletching_logs.example.json
 config/powermining.example.json

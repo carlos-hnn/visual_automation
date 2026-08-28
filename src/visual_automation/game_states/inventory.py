@@ -31,6 +31,7 @@ class InventoryStatus:
 class InventorySlotStatus:
     empty_slots: int
     empty_required: int
+    occupied_centers: tuple[tuple[int, int], ...] = ()
 
     @property
     def is_full(self) -> bool:
@@ -56,6 +57,7 @@ def detect_inventory_grid_status(
     frame = screen.capture(region)
     gray = cv2.cvtColor(frame.image, cv2.COLOR_BGR2GRAY)
     empty_slots = 0
+    occupied_centers: list[tuple[int, int]] = []
     radius = max(2, int(patch_radius))
     for row in range(rows):
         for column in range(columns):
@@ -67,7 +69,13 @@ def detect_inventory_grid_status(
             ]
             if patch.size and float(patch.std()) < occupied_std_threshold:
                 empty_slots += 1
-    return InventorySlotStatus(empty_slots=empty_slots, empty_required=max(1, empty_required))
+            elif patch.size:
+                occupied_centers.append((frame.left + center_x, frame.top + center_y))
+    return InventorySlotStatus(
+        empty_slots=empty_slots,
+        empty_required=max(1, empty_required),
+        occupied_centers=tuple(occupied_centers),
+    )
 
 
 def detect_inventory_status(
